@@ -113,4 +113,4 @@
 - [x] 6.5 前端手点：`/github`、`/dashboard/github-sync`、`/dashboard/github-deep-discovery`、`/dashboard/namespaces/$slug/github-sources` 均 404 或不可达
 - [x] 6.6 前端手点：主导航无"开源技能"入口，后台侧边栏无"GitHub 同步"项，市场无来源筛选器，技能详情无 GitHub 来源卡
 - [x] 6.7 全局检索确认：`grep -ri "github" --include=*.java --include=*.ts --include=*.tsx` 仅剩 GitHub OAuth 与文档链接
-- [ ] 6.8 部署冒烟：`docker compose --env-file .env.release -f compose.release.yml up -d` 后 `/actuator/health` 与登录可用
+- [x] 6.8 部署冒烟：`docker compose --env-file .env.release -f compose.release.yml up -d` 后 `/actuator/health` 与登录可用
