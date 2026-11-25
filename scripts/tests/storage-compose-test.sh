@@ -23,11 +23,11 @@ run --storage external -- --profile diagnostics config
 run --storage rustfs -- logs -f
 [[ "$(cat "$work/args")" == *logs* ]] || fail "Log command not forwarded"
 run --storage rustfs -- --profile diagnostics logs -f server
-[[ "$(cat "$work/args")" == *$'--profile\ndiagnostics\nlogs\n-f\ndiagnostics' ]] || fail "Profile log follow command not forwarded"
+[[ "$(cat "$work/args")" == *$'--profile\ndiagnostics\nlogs\n-f\nserver' ]] || fail "Profile log follow command not forwarded"
 run --storage rustfs -- --profile diagnostics logs --follow server
-[[ "$(cat "$work/args")" == *$'logs\n--follow\ndiagnostics' ]] || fail "Long log follow command not forwarded"
+[[ "$(cat "$work/args")" == *$'logs\n--follow\nserver' ]] || fail "Long log follow command not forwarded"
 run --storage rustfs -- --ansi never --profile=diagnostics --parallel 2 --progress=plain logs -f server
-[[ "$(cat "$work/args")" == *$'logs\n-f\ndiagnostics' ]] || fail "Global options obscured log command"
+[[ "$(cat "$work/args")" == *$'logs\n-f\nserver' ]] || fail "Global options obscured log command"
 for args in 'rustfs --storage silo' 'unknown'; do
   # Intentional word splitting for these fixed malformed input fixtures.
   if run --storage $args -- config >/dev/null 2>&1; then fail "Accepted invalid selection"; fi
