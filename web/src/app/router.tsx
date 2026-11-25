@@ -2,7 +2,7 @@ import { lazy, Suspense, type ComponentType } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createRouter, createRoute, createRootRoute, redirect } from '@tanstack/react-router'
 import { Layout } from './layout'
-import { getCurrentUser, type GithubSyncRepositoryQuery, type GithubSyncRunQuery } from '@/api/client'
+import { getCurrentUser } from '@/api/client'
 import { RoleGuard } from '@/shared/components/role-guard'
 import { RouteError } from '@/shared/components/route-error'
 import { createRedirectAuthenticated, createRequireAuth, isSafeAuthReturnTo } from '@/shared/lib/auth-route'
@@ -35,10 +35,6 @@ function RouteLoadingFallback() {
 
 function SilentRouteFallback() {
   return <div className="min-h-[40vh]" aria-hidden />
-}
-
-function allowedSearchValue<T extends string>(value: unknown, options: readonly T[]): T | undefined {
-  return typeof value === 'string' && options.some((option) => option === value) ? value as T : undefined
 }
 
 interface LazyRouteOptions {
@@ -102,7 +98,6 @@ const RegisterPage = createLazyRouteComponent(() => import('@/pages/register'), 
 const ResetPasswordPage = createLazyRouteComponent(() => import('@/pages/reset-password'), 'ResetPasswordPage')
 const PrivacyPolicyPage = createLazyRouteComponent(() => import('@/pages/privacy'), 'PrivacyPolicyPage')
 const SearchPage = createLazyRouteComponent(() => import('@/pages/search'), 'SearchPage')
-const GithubSkillsPage = createLazyRouteComponent(() => import('@/pages/github-skills'), 'GithubSkillsPage')
 const SuitesPage = createLazyRouteComponent(() => import('@/pages/suites'), 'SuitesPage')
 const SuiteDetailPage = createLazyRouteComponent(() => import('@/pages/suite-detail'), 'SuiteDetailPage')
 const TermsOfServicePage = createLazyRouteComponent(() => import('@/pages/terms'), 'TermsOfServicePage')
@@ -163,20 +158,15 @@ const NamespaceReviewsPage = createLazyRouteComponent(
   'NamespaceReviewsPage',
   dashboardRouteOptions,
 )
-const NamespaceGithubSourcesPage = createLazyRouteComponent(
-  () => import('@/pages/dashboard/namespace-github-sources'), 'NamespaceGithubSourcesPage', dashboardRouteOptions,
-)
+
 const NamespaceReviewDetailPage = createLazyRouteComponent(
   () => import('@/pages/dashboard/review-detail'),
   'NamespaceReviewDetailPage',
   dashboardRouteOptions,
 )
 const GovernancePage = createLazyRouteComponent(() => import('@/pages/dashboard/governance'), 'GovernancePage', dashboardRouteOptions)
-const GithubSyncPage = createRoleProtectedRouteComponent(
-  () => import('@/pages/dashboard/github-sync'), 'GithubSyncPage', ['SUPER_ADMIN'], dashboardRouteOptions,
-)
+
 const ReviewsPage = createLazyRouteComponent(() => import('@/pages/dashboard/reviews'), 'ReviewsPage', dashboardRouteOptions)
-const RepositoryReviewPage = createLazyRouteComponent(() => import('@/pages/dashboard/repository-review'), 'RepositoryReviewPage', dashboardRouteOptions)
 const ReviewProgressPage = createLazyRouteComponent(
   () => import('@/pages/dashboard/review-progress'),
   'ReviewProgressPage',
@@ -307,12 +297,11 @@ const searchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'search',
   component: SearchPage,
-  validateSearch: (search: Record<string, unknown>): { q: string; namespace?: string; label?: string; source?: 'all' | 'platform' | 'github'; sort: string; page: number; starredOnly: boolean } => {
+  validateSearch: (search: Record<string, unknown>): { q: string; namespace?: string; label?: string; sort: string; page: number; starredOnly: boolean } => {
     return {
       q: normalizeSearchQuery(typeof search.q === 'string' ? search.q : ''),
       namespace: typeof search.namespace === 'string' && search.namespace ? search.namespace.replace(/^@/, '') : undefined,
       label: typeof search.label === 'string' && search.label ? search.label : undefined,
-      source: search.source === 'platform' || search.source === 'github' || search.source === 'all' ? search.source : undefined,
       sort: (search.sort as string) || 'newest',
       page: Number(search.page) || 0,
       starredOnly: search.starredOnly === true || search.starredOnly === 'true',
@@ -320,31 +309,6 @@ const searchRoute = createRoute({
   },
 })
 
-const githubSkillsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: 'github',
-  component: GithubSkillsPage,
-  validateSearch: (search: Record<string, unknown>): {
-    q: string; sort: string; page: number; view?: 'repositories'; repositoryId?: string; repositoryPage?: number; memberQuery?: string; snapshotId?: string; repositoryTab?: 'history'
-  } => {
-    const page = Number(search.page)
-    const repositoryPage = Number(search.repositoryPage)
-    const repositoryId = String(search.repositoryId ?? '')
-    const snapshotId = String(search.snapshotId ?? '')
-    const repositories = search.view === 'repositories'
-    return {
-      q: normalizeSearchQuery(typeof search.q === 'string' ? search.q : ''),
-      sort: search.sort === 'downloads' ? 'downloads' : 'newest',
-      page: Number.isInteger(page) && page >= 0 && page <= 2147483647 ? page : 0,
-      view: repositories ? 'repositories' : undefined,
-      repositoryId: repositories && /^[1-9][0-9]{0,18}$/.test(repositoryId) ? repositoryId : undefined,
-      repositoryPage: repositories && Number.isInteger(repositoryPage) && repositoryPage > 0 && repositoryPage <= 2147483647 ? repositoryPage : undefined,
-      snapshotId: repositories && /^[1-9][0-9]{0,18}$/.test(snapshotId) ? snapshotId : undefined,
-      repositoryTab: repositories && search.repositoryTab === 'history' ? 'history' : undefined,
-      memberQuery: repositories && typeof search.memberQuery === 'string' ? normalizeSearchQuery(search.memberQuery) || undefined : undefined,
-    }
-  },
-})
 
 const suitesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -558,12 +522,6 @@ const dashboardNamespaceReviewsRoute = createRoute({
   component: NamespaceReviewsPage,
 })
 
-const dashboardNamespaceGithubSourcesRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: 'dashboard/namespaces/$slug/github-sources',
-  beforeLoad: requireAuth,
-  component: NamespaceGithubSourcesPage,
-})
 
 const dashboardGovernanceRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -572,47 +530,6 @@ const dashboardGovernanceRoute = createRoute({
   component: GovernancePage,
 })
 
-const dashboardGithubSyncRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: 'dashboard/github-sync',
-  beforeLoad: requireAuth,
-  validateSearch: (search: Record<string, unknown>): {
-    runId?: string; sourceId?: number; repositoryId?: number; tab?: 'overview' | 'repositories' | 'runs';
-    drawer?: 'collection' | 'settings'; page?: number; runPage?: number; q?: string;
-    originType?: GithubSyncRepositoryQuery['originType']; state?: GithubSyncRepositoryQuery['state'];
-    sourceStatus?: GithubSyncRepositoryQuery['sourceStatus']; runKind?: GithubSyncRunQuery['kind'];
-    runStatus?: GithubSyncRunQuery['status']; asOf?: string;
-  } => ({
-    runId: typeof search.runId === 'string' && /^[0-9a-f-]{36}$/i.test(search.runId) ? search.runId : undefined,
-    sourceId: (typeof search.sourceId === 'number' || typeof search.sourceId === 'string')
-      && Number.isSafeInteger(Number(search.sourceId)) && Number(search.sourceId) > 0
-      ? Number(search.sourceId) : undefined,
-    repositoryId: (typeof search.repositoryId === 'number' || typeof search.repositoryId === 'string')
-      && Number.isSafeInteger(Number(search.repositoryId)) && Number(search.repositoryId) > 0
-      ? Number(search.repositoryId) : undefined,
-    tab: allowedSearchValue(search.tab, ['overview', 'repositories', 'runs'] as const),
-    drawer: allowedSearchValue(search.drawer, ['collection', 'settings'] as const),
-    page: Number.isSafeInteger(Number(search.page)) && Number(search.page) >= 0 ? Number(search.page) : undefined,
-    runPage: Number.isSafeInteger(Number(search.runPage)) && Number(search.runPage) >= 0 ? Number(search.runPage) : undefined,
-    q: typeof search.q === 'string' ? search.q.slice(0, 120) : undefined,
-    originType: allowedSearchValue(search.originType, ['CURATED_REPOSITORY', 'CURATED_OWNER', 'SEARCH_RULE', 'OFFICIAL_DISCOVERY', 'TEAM_CONFIG'] as const),
-    state: allowedSearchValue(search.state, ['REGISTERED', 'PENDING', 'VALIDATING', 'NO_VALID_SKILL', 'VALIDATION_FAILED', 'UNREACHABLE', 'BOUND_WITHOUT_SOURCE'] as const),
-    sourceStatus: allowedSearchValue(search.sourceStatus, ['ACTIVE', 'PAUSED', 'UNREACHABLE'] as const),
-    runKind: allowedSearchValue(search.runKind, ['DISCOVERY', 'REPOSITORY_SYNC'] as const),
-    runStatus: allowedSearchValue(search.runStatus, ['QUEUED', 'LEASED', 'RETRY_WAIT', 'PARTIAL', 'ACQUISITION_COMPLETE', 'FAILED'] as const),
-    asOf: typeof search.asOf === 'string' && !Number.isNaN(Date.parse(search.asOf)) ? search.asOf : undefined,
-  }),
-  component: GithubSyncPage,
-})
-
-const dashboardGithubDeepDiscoveryRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: 'dashboard/github-deep-discovery',
-  beforeLoad: async (ctx) => {
-    await requireAuth(ctx)
-    throw redirect({ to: '/dashboard/github-sync', search: { drawer: 'collection' } })
-  },
-})
 
 const dashboardReviewsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -622,13 +539,6 @@ const dashboardReviewsRoute = createRoute({
   component: ReviewsPage,
 })
 
-const dashboardRepositoryReviewRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: 'dashboard/reviews/repositories/$snapshotId',
-  beforeLoad: requireAuth,
-  validateSearch: validateReviewSearch,
-  component: RepositoryReviewPage,
-})
 
 const dashboardReviewProgressRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -822,7 +732,6 @@ const routeTree = rootRoute.addChildren([
   resetPasswordRoute,
   privacyRoute,
   searchRoute,
-  githubSkillsRoute,
   suitesRoute,
   suiteDetailRoute,
   termsRoute,
@@ -844,13 +753,9 @@ const routeTree = rootRoute.addChildren([
   dashboardNamespaceSettingsRoute,
   dashboardNamespaceMembersRoute,
   dashboardNamespaceReviewsRoute,
-  dashboardNamespaceGithubSourcesRoute,
   dashboardNamespaceReviewDetailRoute,
   dashboardGovernanceRoute,
-  dashboardGithubSyncRoute,
-  dashboardGithubDeepDiscoveryRoute,
   dashboardReviewsRoute,
-  dashboardRepositoryReviewRoute,
   dashboardReviewProgressRoute,
   dashboardReportsRoute,
   dashboardReviewDetailRoute,

@@ -137,10 +137,6 @@ public class JpaReviewQueueQueryRepository implements ReviewQueueQueryRepository
             where.append(" AND (").append(VERDICT).append(") = :scanVerdict");
             parameters.put("scanVerdict", filter.scanVerdict());
         }
-        if (filter.originType() != null) {
-            where.append(" AND task.origin_type = :originType");
-            parameters.put("originType", filter.originType());
-        }
         if (filter.reviewKind() != null) {
             where.append(" AND (").append(KIND).append(") = :reviewKind");
             parameters.put("reviewKind", filter.reviewKind());
@@ -150,10 +146,7 @@ public class JpaReviewQueueQueryRepository implements ReviewQueueQueryRepository
                     .append(" OR LOWER(CONCAT(ns.slug, '/', COALESCE(skill.slug, suite.slug))) LIKE :query ESCAPE '!' ")
                     .append(" OR LOWER(author.display_name) LIKE :query ESCAPE '!' ")
                     .append(" OR LOWER(task.submitted_by) LIKE :query ESCAPE '!' ")
-                    .append(" OR (task.origin_type = 'GITHUB_SYNC' AND EXISTS (SELECT 1 FROM github_sync_package_ingestion provenance ")
-                    .append(" JOIN github_source_binding repository_source ON repository_source.repository_id = provenance.repository_id ")
-                    .append(" AND repository_source.namespace_id = task.namespace_id WHERE provenance.id = task.github_sync_ingestion_id ")
-                    .append(" AND LOWER(CONCAT(repository_source.owner_login, '/', repository_source.repository_name)) LIKE :query ESCAPE '!')))");
+                    .append(")");
             String value = filter.query().strip().toLowerCase(java.util.Locale.ROOT);
             if (value.startsWith("@")) value = value.substring(1);
             parameters.put("query", "%" + value.replace("!", "!!").replace("%", "!%")

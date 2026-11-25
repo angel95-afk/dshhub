@@ -1,4 +1,4 @@
-import { parseReviewCenterFilters, reviewCenterSearch, REVIEW_STATUSES, type ReviewCenterStatus, type ReviewCenterKind, type ReviewCenterOrigin, type ReviewCenterFilters } from './review-center-filters'
+import { parseReviewCenterFilters, reviewCenterSearch, REVIEW_STATUSES, type ReviewCenterStatus, type ReviewCenterKind, type ReviewCenterFilters } from './review-center-filters'
 
 export interface ReviewRouteSearch {
   memberStatus?: ReviewCenterStatus
@@ -11,10 +11,9 @@ export interface ReviewRouteSearch {
   status?: ReviewCenterStatus
   reviewKind?: ReviewCenterKind
   scanVerdict?: ReviewCenterFilters['scanVerdict']
-  originType?: ReviewCenterOrigin
   sortDirection?: 'ASC' | 'DESC'
   page?: number
-  type?: 'skill' | 'profile' | 'sync'
+  type?: 'skill' | 'profile'
 }
 
 /** Preserve queue context while keeping detail returns on a fixed, trusted route. */
@@ -28,7 +27,7 @@ export function validateReviewSearch(search: Record<string, unknown>): ReviewRou
     reviewView: search.reviewView === 'rows' || search.reviewView === 'snapshots' ? search.reviewView : undefined,
     snapshotId: Number.isSafeInteger(Number(search.snapshotId)) && Number(search.snapshotId) > 0 ? Number(search.snapshotId) : undefined,
     groupPage: Number.isSafeInteger(Number(search.groupPage)) && Number(search.groupPage) >= 0 ? Number(search.groupPage) : undefined,
-    type: search.type === 'skill' || search.type === 'profile' || search.type === 'sync' ? search.type : undefined,
+    type: search.type === 'skill' || search.type === 'profile' ? search.type : undefined,
   }
 }
 

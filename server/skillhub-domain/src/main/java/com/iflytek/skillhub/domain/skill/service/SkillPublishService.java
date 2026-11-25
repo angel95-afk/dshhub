@@ -357,7 +357,7 @@ public class SkillPublishService {
             SkillVisibility visibility, Set<String> platformRoles, boolean confirmWarnings,
             String displayName, String shortDescription, String overview, boolean resetPresentation) {
         return publishFromEntriesInternal(namespaceSlug, entries, publisherId, visibility, platformRoles,
-                confirmWarnings, false, false, null, null, displayName, shortDescription, overview, resetPresentation);
+                confirmWarnings, false, false, null, displayName, shortDescription, overview, resetPresentation);
     }
 
     /** Publishes a request carrying an explicit Token capability ceiling. */
@@ -368,29 +368,10 @@ public class SkillPublishService {
             String displayName, String shortDescription, String overview, boolean resetPresentation,
             Set<String> tokenCapabilities) {
         return publishFromEntriesInternal(namespaceSlug, entries, publisherId, visibility, platformRoles,
-                confirmWarnings, false, false, null, null, displayName, shortDescription, overview,
+                confirmWarnings, false, false, null, displayName, shortDescription, overview,
                 resetPresentation, tokenCapabilities);
     }
 
-    /** Publishes a validated GitHub package into the dedicated sync review queue. */
-    @Transactional
-    public PublishResult publishGithubSyncFromEntries(
-            String namespaceSlug, List<PackageEntry> entries, SkillVisibility visibility,
-            UUID ingestionId, String contentSha256, Long expectedSkillId) {
-        if (ingestionId == null || contentSha256 == null || !contentSha256.matches("[0-9a-f]{64}")) {
-            throw new IllegalArgumentException("Validated GitHub ingestion and content digest are required");
-        }
-        if (visibility != SkillVisibility.PUBLIC && visibility != SkillVisibility.NAMESPACE_ONLY) {
-            throw new IllegalArgumentException("GitHub sync requires a reviewable visibility");
-        }
-        PublishResult result = publishFromEntriesInternal(namespaceSlug, entries, "github-sync-publisher", visibility,
-                Set.of(), true, false, true, null,
-                new GithubSyncPublicationTarget(expectedSkillId, ingestionId, contentSha256), null);
-        // The publication repository assigns the revision with JDBC in the same transaction.
-        // Flush pending JPA updates (including SCANNING) first so they cannot overwrite it.
-        skillVersionRepository.flush();
-        return result;
-    }
 
     /**
      * Publishes one package that was explicitly bound by a confirmed Suite Bundle plan.
@@ -432,7 +413,7 @@ public class SkillPublishService {
         return publishFromEntriesInternal(
                 namespaceSlug, entries, publisherId, visibility,
                 platformRoles == null ? Set.of() : platformRoles,
-                confirmWarnings, false, false, target, null, null, null, null, false, tokenCapabilities);
+                confirmWarnings, false, false, target, null, null, null, false, tokenCapabilities);
     }
 
     /**
@@ -469,16 +450,12 @@ public class SkillPublishService {
             Set<String> platformRoles, Set<String> tokenCapabilities) {
         Skill skill = skillRepository.findById(skillId)
                 .orElseThrow(() -> new DomainBadRequestException("error.skill.notFound", skillId));
-        if (skill.isGithubSyncManaged()) {
-            throw new DomainBadRequestException("review.submit.githubSyncManaged", skillId);
-        }
+
         assertCanManageLifecycle(skill, publisherId, userNamespaceRoles, platformRoles);
 
         SkillVersion publishedVersion = skillVersionRepository.findBySkillIdAndVersion(skillId, sourceVersion)
                 .orElseThrow(() -> new DomainBadRequestException("error.skill.version.notFound", sourceVersion));
-        if (publishedVersion.getGithubSyncIngestionId() != null) {
-            throw new DomainBadRequestException("review.submit.githubSyncManaged", publishedVersion.getId());
-        }
+
         if (publishedVersion.getStatus() != SkillVersionStatus.PUBLISHED) {
             throw new DomainBadRequestException("error.skill.version.notPublished", sourceVersion);
         }
@@ -500,7 +477,6 @@ public class SkillPublishService {
                 confirmWarnings,  // confirmWarnings: honour caller's choice for rerelease
                 false,  // forceAutoPublish=false: respect visibility rules
                 true,
-                null,
                 null,
                 displayNameOverrideForRerelease(publishedVersion),
                 presentationOverrideForRerelease(publishedVersion, "shortDescriptionOverride"),
@@ -565,16 +541,16 @@ public class SkillPublishService {
             boolean bypassMembershipCheck,
             BundlePublicationTarget bundleTarget) {
         return publishFromEntriesInternal(namespaceSlug, entries, publisherId, visibility, platformRoles,
-                confirmWarnings, forceAutoPublish, bypassMembershipCheck, bundleTarget, null, null);
+                confirmWarnings, forceAutoPublish, bypassMembershipCheck, bundleTarget, null);
     }
 
     private PublishResult publishFromEntriesInternal(
             String namespaceSlug, List<PackageEntry> entries, String publisherId,
             SkillVisibility visibility, Set<String> platformRoles, boolean confirmWarnings,
             boolean forceAutoPublish, boolean bypassMembershipCheck,
-            BundlePublicationTarget bundleTarget, GithubSyncPublicationTarget syncTarget, String displayName) {
+            BundlePublicationTarget bundleTarget, String displayName) {
         return publishFromEntriesInternal(namespaceSlug, entries, publisherId, visibility, platformRoles,
-                confirmWarnings, forceAutoPublish, bypassMembershipCheck, bundleTarget, syncTarget, displayName,
+                confirmWarnings, forceAutoPublish, bypassMembershipCheck, bundleTarget, displayName,
                 null, null, false);
     }
 
@@ -582,10 +558,10 @@ public class SkillPublishService {
             String namespaceSlug, List<PackageEntry> entries, String publisherId,
             SkillVisibility visibility, Set<String> platformRoles, boolean confirmWarnings,
             boolean forceAutoPublish, boolean bypassMembershipCheck,
-            BundlePublicationTarget bundleTarget, GithubSyncPublicationTarget syncTarget, String displayName,
+            BundlePublicationTarget bundleTarget, String displayName,
             String shortDescription, String overview, boolean resetPresentation) {
         return publishFromEntriesInternal(namespaceSlug, entries, publisherId, visibility, platformRoles,
-                confirmWarnings, forceAutoPublish, bypassMembershipCheck, bundleTarget, syncTarget,
+                confirmWarnings, forceAutoPublish, bypassMembershipCheck, bundleTarget,
                 displayName, shortDescription, overview, resetPresentation, null);
     }
 
@@ -593,10 +569,10 @@ public class SkillPublishService {
             String namespaceSlug, List<PackageEntry> entries, String publisherId,
             SkillVisibility visibility, Set<String> platformRoles, boolean confirmWarnings,
             boolean forceAutoPublish, boolean bypassMembershipCheck,
-            BundlePublicationTarget bundleTarget, GithubSyncPublicationTarget syncTarget, String displayName,
+            BundlePublicationTarget bundleTarget, String displayName,
             String shortDescription, String overview, boolean resetPresentation, Set<String> tokenCapabilities) {
         return publishFromEntriesInternal(namespaceSlug, entries, publisherId, visibility, platformRoles,
-                confirmWarnings, forceAutoPublish, bypassMembershipCheck, bundleTarget, syncTarget,
+                confirmWarnings, forceAutoPublish, bypassMembershipCheck, bundleTarget,
                 displayName, shortDescription, overview, resetPresentation, tokenCapabilities, false);
     }
 
@@ -604,7 +580,7 @@ public class SkillPublishService {
             String namespaceSlug, List<PackageEntry> entries, String publisherId,
             SkillVisibility visibility, Set<String> platformRoles, boolean confirmWarnings,
             boolean forceAutoPublish, boolean bypassMembershipCheck,
-            BundlePublicationTarget bundleTarget, GithubSyncPublicationTarget syncTarget, String displayName,
+            BundlePublicationTarget bundleTarget, String displayName,
             String shortDescription, String overview, boolean resetPresentation,
             Set<String> tokenCapabilities, boolean rerelease) {
 
@@ -612,15 +588,6 @@ public class SkillPublishService {
         Namespace namespace = namespaceRepository.findBySlug(namespaceSlug)
                 .orElseThrow(() -> new DomainBadRequestException("error.namespace.slug.notFound", namespaceSlug));
         assertNamespaceWritable(namespace);
-        if (syncTarget != null && namespace.getType() != NamespaceType.CATALOG
-                && namespace.getType() != NamespaceType.TEAM) {
-            throw new DomainBadRequestException("error.skill.publish.githubSync.namespaceInvalid");
-        }
-        if (syncTarget != null
-                && namespace.getType() == NamespaceType.CATALOG
-                && visibility != SkillVisibility.PUBLIC) {
-            throw new DomainBadRequestException("error.skill.publish.githubSync.namespaceInvalid");
-        }
 
         boolean isSuperAdmin = platformRoles.contains("SUPER_ADMIN");
 
@@ -648,16 +615,7 @@ public class SkillPublishService {
         SkillMetadata metadata = skillMetadataParser.parse(skillMdContent).withDisplayNameOverride(displayName);
         metadata = metadata.withPresentation(resetPresentation ? null : shortDescription,
                 resetPresentation ? null : overview, null);
-        String upstreamVersion = syncTarget == null ? null : metadata.version();
-        if (syncTarget != null) {
-            // A reverted upstream package is a new review target after an intervening update.
-            // The ingestion suffix keeps that version distinct without using the commit as identity.
-            String syncVersion = "0.0.0-g" + syncTarget.contentSha256().substring(0, 40)
-                    + "-" + syncTarget.ingestionId().toString().replace("-", "").substring(0, 16);
-            metadata = new SkillMetadata(metadata.name(), metadata.description(), syncVersion,
-                    metadata.body(), metadata.frontmatter(), metadata.displayNameOverride(),
-                    metadata.shortDescriptionOverride(), metadata.overviewOverride(), null);
-        } else if (metadata.version() == null || metadata.version().isBlank()) {
+        if (metadata.version() == null || metadata.version().isBlank()) {
             String autoVersion = AUTO_VERSION_FORMATTER.format(currentTime());
             metadata = new SkillMetadata(metadata.name(), metadata.description(), autoVersion,
                     metadata.body(), metadata.frontmatter(), metadata.displayNameOverride(),
@@ -696,35 +654,15 @@ public class SkillPublishService {
 
         // 6. Find or create Skill record (with owner isolation)
         List<Skill> existingSkills = skillRepository.findByNamespaceIdAndSlug(namespace.getId(), skillSlug);
-        boolean exactBoundSkill = syncTarget != null && syncTarget.expectedSkillId() != null
-                && existingSkills.stream().anyMatch(existing ->
-                        Objects.equals(existing.getId(), syncTarget.expectedSkillId()));
-        if (syncTarget != null) {
-            if ((!existingSkills.isEmpty() && !exactBoundSkill)
-                    || (syncTarget.expectedSkillId() != null && !exactBoundSkill)) {
-                throw new DomainBadRequestException("error.skill.publish.githubSync.slugConflict", skillSlug);
-            }
-        }
 
         // Check if any other owner's skill has published versions
         // Only PUBLISHED status blocks same-name publishing (UPLOADED/PENDING_REVIEW allowed)
         for (Skill existing : existingSkills) {
-            if (syncTarget == null && existing.isGithubSyncManaged()) {
-                throw new DomainBadRequestException(
-                        "error.skill.publish.githubSync.slugConflict", skillSlug);
-            }
-            boolean isBoundTarget = (bundleTarget != null
-                    && Objects.equals(existing.getId(), bundleTarget.expectedSkillId()))
-                    || (syncTarget != null
-                    && Objects.equals(existing.getId(), syncTarget.expectedSkillId()));
-            if (syncTarget != null && exactBoundSkill && !isBoundTarget) {
-                continue;
-            }
+
+            boolean isBoundTarget = bundleTarget != null
+                    && Objects.equals(existing.getId(), bundleTarget.expectedSkillId());
             if (!existing.getOwnerId().equals(publisherId) && !isBoundTarget) {
-                if (existing.getOwnerId().equals("github-sync-publisher")) {
-                    throw new DomainBadRequestException(
-                            "error.skill.publish.githubSync.slugConflict", skillSlug);
-                }
+
                 boolean hasPublished = !skillVersionRepository
                         .findBySkillIdAndStatus(existing.getId(), SkillVersionStatus.PUBLISHED)
                         .isEmpty();
@@ -741,11 +679,7 @@ public class SkillPublishService {
 
         Skill skill;
         boolean newSkill = false;
-        if (syncTarget != null && syncTarget.expectedSkillId() != null) {
-            skill = existingSkills.stream()
-                    .filter(existing -> Objects.equals(existing.getId(), syncTarget.expectedSkillId()))
-                    .findFirst().orElseThrow();
-        } else if (bundleTarget == null) {
+        if (bundleTarget == null) {
             var owned = skillRepository.findByNamespaceIdAndSlugAndOwnerId(namespace.getId(), skillSlug, publisherId);
             if (owned.isPresent()) {
                 skill = owned.get();
@@ -814,29 +748,7 @@ public class SkillPublishService {
         if (bundleTarget != null && !pendingVersions.isEmpty()) {
             throw bundleStateChanged();
         }
-        if (syncTarget != null) {
-            for (ReviewTask task : reviewTaskRepository.findBySkillIdAndStatus(
-                    skill.getId(), ReviewTaskStatus.PENDING)) {
-                if (task.getGithubSyncIngestionId() == null) {
-                    throw new DomainBadRequestException(
-                            "error.skill.publish.githubSync.pendingUserReview", skillSlug);
-                }
-                int updated = reviewTaskRepository.updateStatusWithVersion(
-                        task.getId(), ReviewTaskStatus.SUPERSEDED,
-                        publisherId, "Newer GitHub content received", task.getVersion());
-                if (updated != 1) {
-                    throw new DomainBadRequestException(
-                            "error.skill.publish.concurrentConflict", skillSlug);
-                }
-                SkillVersion previous = skillVersionRepository.findById(task.getSkillVersionId())
-                        .orElseThrow(() -> new IllegalStateException("Sync review has no Skill version"));
-                if (previous.getStatus() == SkillVersionStatus.PENDING_REVIEW
-                        || previous.getStatus() == SkillVersionStatus.SCANNING) {
-                    previous.setStatus(SkillVersionStatus.UPLOADED);
-                    skillVersionRepository.save(previous);
-                }
-            }
-        } else if (bundleTarget == null) {
+        if (bundleTarget == null) {
             for (SkillVersion pending : pendingVersions) {
                 reviewTaskRepository.findBySkillVersionIdAndStatus(pending.getId(), ReviewTaskStatus.PENDING)
                         .ifPresent(this::withdrawTask);
@@ -848,9 +760,7 @@ public class SkillPublishService {
         // 7. Check version doesn't already exist
         java.util.Optional<SkillVersion> existingVersion = skillVersionRepository.findBySkillIdAndVersion(skill.getId(), metadata.version());
         if (existingVersion.isPresent()) {
-            if (syncTarget != null) {
-                throw new DomainBadRequestException("error.skill.publish.githubSync.versionExists", skillSlug);
-            }
+
             if (bundleTarget != null) {
                 throw bundleStateChanged();
             }
@@ -864,9 +774,7 @@ public class SkillPublishService {
         // 8. Create SkillVersion
         SkillVersion version = new SkillVersion(skill.getId(), metadata.version(), publisherId);
         version.setRequestedVisibility(visibility);
-        if (syncTarget != null) {
-            version.setGithubSyncIngestionId(syncTarget.ingestionId());
-        }
+
         boolean autoPublish = tokenCapabilities == null && (forceAutoPublish || isSuperAdmin);
         if (autoPublish) {
             version.setStatus(SkillVersionStatus.PUBLISHED);
@@ -884,7 +792,7 @@ public class SkillPublishService {
         // Store metadata as JSON
         try {
             String metadataJson = objectMapper.writeValueAsString(
-                    buildParsedMetadata(metadata, complianceSnapshot, syncTarget, upstreamVersion));
+                    buildParsedMetadata(metadata, complianceSnapshot));
             version.setParsedMetadataJson(metadataJson);
             version.setManifestJson(objectMapper.writeValueAsString(buildManifest(entries)));
         } catch (Exception e) {
@@ -1014,17 +922,13 @@ public class SkillPublishService {
 
         // Create review task for PUBLIC/NAMESPACE_ONLY (not PRIVATE)
         if (!autoPublish && visibility != SkillVisibility.PRIVATE) {
-            ReviewTask reviewTask = syncTarget == null
-                    ? new ReviewTask(version.getId(), skill.getId(), namespace.getId(),
-                            version.getVersion(), publisherId)
-                    : ReviewTask.forGithubSyncSkillVersion(version.getId(), skill.getId(),
-                            namespace.getId(), version.getVersion(), publisherId,
-                            syncTarget.ingestionId());
+            ReviewTask reviewTask = new ReviewTask(version.getId(), skill.getId(), namespace.getId(),
+                    version.getVersion(), publisherId);
             // Only ordinary single-Skill submissions may capture team-only automatic eligibility.
-            // Privileged direct publish, GitHub sync and Bundle orchestration keep their own rules.
+            // Privileged direct publish and Bundle orchestration keep their own rules.
             boolean maySubmit = tokenCapabilities == null
                     || tokenCapabilities.contains(SkillTokenCapabilityPolicy.SUBMIT);
-            Optional<UUID> autoPublicationGrant = syncTarget == null && bundleTarget == null
+            Optional<UUID> autoPublicationGrant = bundleTarget == null
                     && teamAutoPublicationPolicy != null
                     ? teamAutoPublicationPolicy.grantForSubmission(
                             namespace, skill, newSkill, visibility, publisherId, maySubmit)
@@ -1054,9 +958,7 @@ public class SkillPublishService {
             skill.setDisplayName(metadata.displayName());
             skill.setSummary(metadata.shortDescription());
         }
-        if (syncTarget != null) {
-            skill.assignGithubSyncOwnership(publisherId);
-        }
+
         if (autoPublish || visibility == SkillVisibility.PRIVATE) {
             // Update latestVersionId for autoPublish or PRIVATE skill (UPLOADED status)
             skill.setLatestVersionId(version.getId());
@@ -1251,8 +1153,6 @@ public class SkillPublishService {
         }
     }
 
-    private record GithubSyncPublicationTarget(Long expectedSkillId, UUID ingestionId,
-                                               String contentSha256) {}
 
     private Instant currentTime() {
         return Instant.now(clock);
@@ -1308,9 +1208,7 @@ public class SkillPublishService {
     }
 
     private Map<String, Object> buildParsedMetadata(SkillMetadata metadata,
-                                                     ComplianceSnapshot complianceSnapshot,
-                                                     GithubSyncPublicationTarget syncTarget,
-                                                     String upstreamVersion) {
+                                                     ComplianceSnapshot complianceSnapshot) {
         Map<String, Object> parsedMetadata = new LinkedHashMap<>();
         parsedMetadata.put("name", metadata.name());
         parsedMetadata.put("description", metadata.description());
@@ -1321,10 +1219,7 @@ public class SkillPublishService {
         parsedMetadata.put("shortDescriptionOverride", metadata.shortDescriptionOverride());
         parsedMetadata.put("overviewOverride", metadata.overviewOverride());
         parsedMetadata.put("presentationInheritedFrom", metadata.presentationInheritedFrom());
-        if (syncTarget != null) {
-            parsedMetadata.put("upstreamVersion", upstreamVersion);
-            parsedMetadata.put("githubContentSha256", syncTarget.contentSha256());
-        }
+
 
         parsedMetadata.put(ComplianceMetadataService.SNAPSHOT_FIELD_NAME, complianceSnapshot);
         return parsedMetadata;
@@ -1341,3 +1236,4 @@ public class SkillPublishService {
         }
     }
 }
+

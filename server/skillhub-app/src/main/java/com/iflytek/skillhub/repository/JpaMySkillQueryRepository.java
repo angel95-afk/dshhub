@@ -274,6 +274,6 @@ public class JpaMySkillQueryRepository implements MySkillQueryRepository {
             return null;
         }
         return new SkillLifecycleVersionResponse(projection.id(), projection.version(), projection.status(),
-                projection.displayName(), projection.summary(), projection.syncRevision());
+                projection.displayName(), projection.summary());
     }
 }

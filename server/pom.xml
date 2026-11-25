@@ -36,7 +36,6 @@
         <module>skillhub-storage</module>
         <module>skillhub-infra</module>
         <module>skillhub-notification</module>
-        <module>skillhub-github-sync</module>
     </modules>
 
     <dependencyManagement>
@@ -69,11 +68,6 @@
             <dependency>
                 <groupId>com.iflytek.skillhub</groupId>
                 <artifactId>skillhub-notification</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.iflytek.skillhub</groupId>
-                <artifactId>skillhub-github-sync</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

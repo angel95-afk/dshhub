@@ -366,8 +366,8 @@ public class S3StorageService implements ObjectStorageService {
     @Override
     public Optional<PresignedUpload> presignPut(String key, Duration expiry) {
         try {
-            // A signed PUT is sent by the worker directly to S3, so no Java putObject call
-            // can create a missing bucket before the first GitHub sync upload.
+            // A signed PUT is sent by the client directly to S3, so no Java putObject call
+            // can create a missing bucket before the first presigned upload.
             ensureBucketPrepared();
             PresignedPutObjectRequest request = s3UploadPresigner.presignPutObject(
                     PutObjectPresignRequest.builder()

@@ -228,7 +228,7 @@ class ReviewPortalControllerTest {
                                 new com.iflytek.skillhub.dto.PageResponse<>(List.of(), 0, 0, 20),
                                 null
                         ),
-                        List.of(new SkillVersionResponse(100L, "1.2.0", null, "PENDING_REVIEW", null, 1, 10L, null, true, null)),
+                        List.of(new SkillVersionResponse(100L, "1.2.0", "PENDING_REVIEW", null, 1, 10L, null, true, null)),
                         List.of(new SkillFileResponse(1L, "README.md", 123L, "text/markdown", "sha")),
                         "README.md",
                         "# demo",
@@ -596,7 +596,7 @@ class ReviewPortalControllerTest {
         );
 
         given(reviewQueueQueryRepository.list(
-                new com.iflytek.skillhub.repository.ReviewQueueQueryRepository.Filter(status.name(), null, "", null, null, "DANGEROUS"),
+                new com.iflytek.skillhub.repository.ReviewQueueQueryRepository.Filter(status.name(), null, "", null, "DANGEROUS"),
                 true, Set.of(), pageable)).willReturn(new PageImpl<>(tasks.stream().map(task ->
                         new com.iflytek.skillhub.repository.ReviewQueueQueryRepository.Entry(task, "Skill", "Summary", "FIRST_PUBLISH", "DANGEROUS"))
                         .toList(), pageable, 42));

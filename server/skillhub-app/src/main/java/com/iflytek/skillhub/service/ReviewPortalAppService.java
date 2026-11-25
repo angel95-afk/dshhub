@@ -8,7 +8,6 @@ import com.iflytek.skillhub.domain.namespace.NamespaceRepository;
 import com.iflytek.skillhub.domain.namespace.NamespaceRole;
 import com.iflytek.skillhub.domain.review.ReviewService;
 import com.iflytek.skillhub.domain.review.ReviewTask;
-import com.iflytek.skillhub.domain.review.ReviewOriginType;
 import com.iflytek.skillhub.domain.review.ReviewTaskRepository;
 import com.iflytek.skillhub.domain.review.ReviewTaskStatus;
 import com.iflytek.skillhub.domain.review.ReviewSubjectType;
@@ -167,8 +166,7 @@ public class ReviewPortalAppService {
                                                         String sortDirection,
                                                         String userId,
                                                         Map<Long, NamespaceRole> userNsRoles) {
-        return listReviewsByOrigin(status, namespaceId, page, size, sortDirection,
-                userId, userNsRoles, ReviewOriginType.USER);
+        return listReviewsByOrigin(status, namespaceId, page, size, sortDirection, userId, userNsRoles);
     }
 
     @Transactional(readOnly = true)
@@ -190,10 +188,9 @@ public class ReviewPortalAppService {
     }
 
     public PageResponse<ReviewTaskResponse> listReviewQueue(String status, Long namespaceId,
-            String query, String reviewKind, String originType, String scanVerdict, int page, int size,
+            String query, String reviewKind, String scanVerdict, int page, int size,
             String sortDirection, String userId, Map<Long, NamespaceRole> userNsRoles) {
         String normalizedStatus = normalizeFilter(status, Set.of("PENDING", "APPROVED", "REJECTED", "SUPERSEDED"));
-        String normalizedOrigin = normalizeFilter(originType, Set.of("USER", "GITHUB_SYNC"));
         String normalizedKind = normalizeFilter(reviewKind, Set.of("FIRST_PUBLISH", "VERSION_UPDATE",
                 "SUITE_PUBLISH", "VISIBILITY_CHANGE", "AVATAR_CHANGE"));
         if (page < 0 || size < 1 || size > 100 || query != null && query.length() > 200) {
@@ -220,7 +217,7 @@ public class ReviewPortalAppService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, "submittedAt").and(Sort.by(direction, "id")));
         Page<ReviewQueueQueryRepository.Entry> result = reviewQueueQueryRepository.list(
                 new ReviewQueueQueryRepository.Filter(normalizedStatus,
-                        namespaceId, query == null ? "" : query, normalizedKind, normalizedOrigin,
+                        namespaceId, query == null ? "" : query, normalizedKind,
                         normalizeFilter(scanVerdict, Set.of("SAFE", "SUSPICIOUS", "DANGEROUS", "BLOCKED"))),
                 platformReviewer, managed, pageable);
         List<ReviewTaskResponse> responses = governanceQueryRepository.getReviewTaskResponses(
@@ -241,16 +238,6 @@ public class ReviewPortalAppService {
         return normalized;
     }
 
-    public PageResponse<ReviewTaskResponse> listSyncReviews(String status,
-                                                            Long namespaceId,
-                                                            int page,
-                                                            int size,
-                                                            String sortDirection,
-                                                            String userId,
-                                                            Map<Long, NamespaceRole> userNsRoles) {
-        return listReviewsByOrigin(status, namespaceId, page, size, sortDirection,
-                userId, userNsRoles, ReviewOriginType.GITHUB_SYNC);
-    }
 
     private PageResponse<ReviewTaskResponse> listReviewsByOrigin(String status,
                                                                  Long namespaceId,
@@ -258,8 +245,7 @@ public class ReviewPortalAppService {
                                                                  int size,
                                                                  String sortDirection,
                                                                  String userId,
-                                                                 Map<Long, NamespaceRole> userNsRoles,
-                                                                 ReviewOriginType originType) {
+                                                                 Map<Long, NamespaceRole> userNsRoles) {
         ReviewTaskStatus reviewStatus = ReviewTaskStatus.valueOf(status.toUpperCase());
         Map<Long, NamespaceRole> namespaceRoles = normalizeRoles(userNsRoles);
         Set<String> platformRoles = platformRoles(userId);
@@ -278,17 +264,12 @@ public class ReviewPortalAppService {
                     platformRoles)) {
                 throw new DomainForbiddenException("review.no_permission");
             }
-            tasks = originType == ReviewOriginType.USER
-                    ? reviewTaskRepository.findByNamespaceIdAndStatus(namespaceId, reviewStatus, pageable)
-                    : reviewTaskRepository.findByNamespaceIdAndOriginTypeAndStatus(
-                            namespaceId, originType, reviewStatus, pageable);
+            tasks = reviewTaskRepository.findByNamespaceIdAndStatus(namespaceId, reviewStatus, pageable);
         } else {
             if (!hasPlatformReviewRole(platformRoles)) {
                 throw new DomainForbiddenException("review.no_permission");
             }
-            tasks = originType == ReviewOriginType.USER
-                    ? reviewTaskRepository.findByStatus(reviewStatus, pageable)
-                    : reviewTaskRepository.findByOriginTypeAndStatus(originType, reviewStatus, pageable);
+            tasks = reviewTaskRepository.findByStatus(reviewStatus, pageable);
         }
 
         List<ReviewTask> visibleItems = tasks.getContent().stream()

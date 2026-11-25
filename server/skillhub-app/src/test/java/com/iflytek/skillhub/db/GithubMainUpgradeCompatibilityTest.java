@@ -11,14 +11,20 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Proves the released main schema and its existing authoring/review data survive the sync upgrade. */
+/**
+ * Proves the released main schema and its existing authoring/review data survive an upgrade to
+ * the latest version, including the V10000 GitHub sync retirement.
+ *
+ * <p>Named after GitHub sync only because that feature introduced this upgrade path; the value
+ * is the V1 to V75 baseline and the rows written against it, not the sync migrations.
+ */
 @Testcontainers
 class GithubMainUpgradeCompatibilityTest {
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(PostgresTestImage.name());
 
     @Test
-    void releasedMainDataAndChecksumsSurviveAllSyncMigrations() {
+    void releasedMainDataAndChecksumsSurviveUpgradeToLatest() {
         var source = new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
         Flyway.configure().dataSource(source).locations("classpath:db/migration").target("75").load().migrate();
         var jdbc = new JdbcTemplate(source);
@@ -32,22 +38,23 @@ class GithubMainUpgradeCompatibilityTest {
         jdbc.update("INSERT INTO skill_draft(namespace_id,owner_id,name,content_digest) VALUES (?,'main-upgrade-owner','Existing draft',?)", namespace, "a".repeat(64));
         jdbc.update("INSERT INTO namespace_invitation_history(id,namespace_id,issued_by,issued_at,expires_at) VALUES ('main-invitation-history',?,'main-upgrade-owner',now(),now()+interval '1 day')", namespace);
         jdbc.update("INSERT INTO namespace_invitation(namespace_id,token_hash,issued_by,issued_at,expires_at,history_id) VALUES (?,?,'main-upgrade-owner',now(),now()+interval '1 day','main-invitation-history')", namespace, "b".repeat(64));
+        jdbc.update("INSERT INTO review_task(skill_id,namespace_id,subject_type,subject_id,subject_version,submitted_by) VALUES (?,?,'SKILL_METADATA',?,'metadata:main-fixture','main-upgrade-owner')", skill, namespace, skill);
 
         var flyway = Flyway.configure().dataSource(source).locations("classpath:db/migration").load();
         flyway.migrate();
         flyway.validate();
 
         assertThat(jdbc.queryForList("SELECT version,checksum FROM flyway_schema_history WHERE version::int <= 75 ORDER BY installed_rank")).isEqualTo(releasedHistory);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success AND version::int BETWEEN 76 AND 119", Integer.class)).isEqualTo(44);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM flyway_schema_history WHERE success AND version::int >= 10000", Integer.class)).isPositive();
         assertThat(jdbc.queryForObject("SELECT display_name FROM skill WHERE id=?", String.class, skill)).isEqualTo("Published title");
         assertThat(jdbc.queryForObject("SELECT active_avatar_id FROM skill WHERE id=?", Long.class, skill)).isEqualTo(777L);
         assertThat(jdbc.queryForObject("SELECT latest_version_id FROM skill WHERE id=?", Long.class, skill)).isEqualTo(version);
-        assertThat(jdbc.queryForObject("SELECT github_sync_managed FROM skill WHERE id=?", Boolean.class, skill)).isFalse();
-        assertThat(jdbc.queryForMap("SELECT previous_visibility,requested_visibility,visibility_version_id,origin_type FROM review_task WHERE id=?", review))
+        assertThat(jdbc.queryForMap("SELECT previous_visibility,requested_visibility,visibility_version_id FROM review_task WHERE id=?", review))
                 .containsEntry("previous_visibility", "PRIVATE").containsEntry("requested_visibility", "PUBLIC")
-                .containsEntry("visibility_version_id", version).containsEntry("origin_type", "USER");
+                .containsEntry("visibility_version_id", version);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM review_task WHERE skill_id=?", Integer.class, skill)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM skill_draft WHERE name='Existing draft'", Integer.class)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT history_id FROM namespace_invitation WHERE namespace_id=?", String.class, namespace)).isEqualTo("main-invitation-history");
-        assertThat(jdbc.queryForObject("SELECT type FROM namespace WHERE slug='github'", String.class)).isEqualTo("CATALOG");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM namespace WHERE slug='github'", Integer.class)).isZero();
     }
 }

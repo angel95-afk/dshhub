@@ -7,7 +7,6 @@ export function reviewRequestKey(review: ReviewTask, hasBaseline: boolean) {
   if (review.subjectType === 'SUITE_VERSION') return 'suite'
   if (review.requestedVisibility) return 'visibility'
   if (review.subjectType === 'SKILL_METADATA') return review.avatarRemoval ? 'avatarRemoval' : 'avatar'
-  if (review.originType === 'GITHUB_SYNC') return 'sync'
   if (review.reviewKind === 'VERSION_UPDATE') return 'update'
   if (review.reviewKind === 'FIRST_PUBLISH') return 'publish'
   return hasBaseline ? 'update' : 'publish'

@@ -14,7 +14,7 @@ class SkillExamplesSummaryTest {
 
     @Test
     void recognizesNormativeFixturesWithoutChangingBytes() throws Exception {
-        Path root = Path.of("../../openspec/changes/add-dsh-native-plugin/contracts");
+        Path root = Path.of("../../openspec/changes/archive/add-dsh-native-plugin/contracts");
         byte[] valid = Files.readAllBytes(root.resolve("skill-examples.valid.json"));
         byte[] before = valid.clone();
         assertThat(SkillExamplesSummary.recognize(valid).status()).isEqualTo(SkillExamplesSummary.Status.ready);

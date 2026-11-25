@@ -9,7 +9,7 @@ export function NamespaceReviewsPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   useEffect(() => {
-    void navigate({ to: '/dashboard/reviews', search: { namespace: slug, originType: search.queue === 'sync' ? 'GITHUB_SYNC' : undefined }, replace: true })
+    void navigate({ to: '/dashboard/reviews', search: { namespace: slug }, replace: true })
   }, [navigate, slug, search.queue])
   return <p className="py-6 text-sm text-muted-foreground" role="status">{t('reviewCenter.openingScope')}</p>
 }

@@ -7,14 +7,14 @@ vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => k
 import { NamespaceReviewsPage } from './namespace-reviews'
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 describe('namespace review compatibility entry', () => {
-  it('opens the shared queue with the namespace and legacy sync filter', () => {
+  it('opens the shared queue scoped to the namespace without carrying a removed legacy filter', () => {
     render(<NamespaceReviewsPage />)
-    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/dashboard/reviews', search: { namespace: 'design', originType: 'GITHUB_SYNC' }, replace: true })
+    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/dashboard/reviews', search: { namespace: 'design' }, replace: true })
   })
   it('does not create another namespace-specific review list', () => {
     mocks.queue = undefined
     const view = render(<NamespaceReviewsPage />)
     expect(view.container.querySelector('table')).toBeNull()
-    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/dashboard/reviews', search: { namespace: 'design', originType: undefined }, replace: true })
+    expect(mocks.navigate).toHaveBeenCalledWith({ to: '/dashboard/reviews', search: { namespace: 'design' }, replace: true })
   })
 })

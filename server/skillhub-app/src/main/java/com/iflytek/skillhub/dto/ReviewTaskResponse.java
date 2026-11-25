@@ -24,7 +24,6 @@ public record ReviewTaskResponse(
         boolean avatarRemoval,
         String previousVisibility,
         String requestedVisibility,
-        String originType,
         String displayName,
         String summary,
         String reviewKind,
@@ -39,11 +38,11 @@ public record ReviewTaskResponse(
             String reviewedBy, String reviewedByName, String reviewComment, Instant submittedAt,
             Instant reviewedAt, String subjectType, Long subjectId, Long subjectVersionId,
             String subjectSlug, Long avatarCandidateId, boolean avatarRemoval,
-            String previousVisibility, String requestedVisibility, String originType) {
+            String previousVisibility, String requestedVisibility) {
         this(id, skillVersionId, namespace, skillSlug, version, status, submittedBy, submittedByName,
                 reviewedBy, reviewedByName, reviewComment, submittedAt, reviewedAt, subjectType,
                 subjectId, subjectVersionId, subjectSlug, avatarCandidateId, avatarRemoval,
-                previousVisibility, requestedVisibility, originType, null, null, null, false,
+                previousVisibility, requestedVisibility, null, null, null, false,
                 null, null, null, null);
     }
 
@@ -52,7 +51,7 @@ public record ReviewTaskResponse(
                 submittedBy, submittedByName, reviewedBy, reviewedByName, reviewComment,
                 submittedAt, reviewedAt, subjectType, subjectId, subjectVersionId, subjectSlug,
                 avatarCandidateId, avatarRemoval, previousVisibility, requestedVisibility,
-                originType, displayName, summary, reviewKind, allowed,
+                displayName, summary, reviewKind, allowed,
                 decisionMethod, decisionScanTaskId, autoPublicationGrantId, scanVerdict);
     }
 
@@ -61,7 +60,7 @@ public record ReviewTaskResponse(
                 submittedBy, submittedByName, reviewedBy, reviewedByName, reviewComment,
                 submittedAt, reviewedAt, subjectType, subjectId, subjectVersionId, subjectSlug,
                 avatarCandidateId, avatarRemoval, previousVisibility, requestedVisibility,
-                originType, displayName, summary, reviewKind, canReview,
+                displayName, summary, reviewKind, canReview,
                 decisionMethod, decisionScanTaskId, autoPublicationGrantId, scanVerdict);
     }
 
@@ -74,16 +73,12 @@ public record ReviewTaskResponse(
                 submittedBy, submittedByName, reviewedBy, reviewedByName, reviewComment,
                 submittedAt, reviewedAt, subjectType, subjectId, subjectVersionId, subjectSlug,
                 avatarCandidateId, avatarRemoval, previousVisibility, requestedVisibility,
-                originType, displayName, summary, reviewKind, canReview,
+                displayName, summary, reviewKind, canReview,
                 method, scanTaskId, grantId, scanVerdict);
     }
 
-    public ReviewTaskResponse(Long id, Long skillVersionId, String namespace, String skillSlug, String version, String status, String submittedBy, String submittedByName, String reviewedBy, String reviewedByName, String reviewComment, Instant submittedAt, Instant reviewedAt, String subjectType, Long subjectId, Long subjectVersionId, String subjectSlug, String originType) {
-        this(id, skillVersionId, namespace, skillSlug, version, status, submittedBy, submittedByName, reviewedBy, reviewedByName, reviewComment, submittedAt, reviewedAt, subjectType, subjectId, subjectVersionId, subjectSlug, null, false, null, null, originType);
-    }
-
-    public ReviewTaskResponse(Long id, Long skillVersionId, String namespace, String skillSlug, String version, String status, String submittedBy, String submittedByName, String reviewedBy, String reviewedByName, String reviewComment, Instant submittedAt, Instant reviewedAt, String subjectType, Long subjectId, Long subjectVersionId, String subjectSlug, Long avatarCandidateId, boolean avatarRemoval, String previousVisibility, String requestedVisibility) {
-        this(id, skillVersionId, namespace, skillSlug, version, status, submittedBy, submittedByName, reviewedBy, reviewedByName, reviewComment, submittedAt, reviewedAt, subjectType, subjectId, subjectVersionId, subjectSlug, avatarCandidateId, avatarRemoval, previousVisibility, requestedVisibility, "USER");
+    public ReviewTaskResponse(Long id, Long skillVersionId, String namespace, String skillSlug, String version, String status, String submittedBy, String submittedByName, String reviewedBy, String reviewedByName, String reviewComment, Instant submittedAt, Instant reviewedAt, String subjectType, Long subjectId, Long subjectVersionId, String subjectSlug) {
+        this(id, skillVersionId, namespace, skillSlug, version, status, submittedBy, submittedByName, reviewedBy, reviewedByName, reviewComment, submittedAt, reviewedAt, subjectType, subjectId, subjectVersionId, subjectSlug, null, false, null, null);
     }
 
     public ReviewTaskResponse(Long id, Long skillVersionId, String namespace, String skillSlug, String version,
@@ -92,15 +87,7 @@ public record ReviewTaskResponse(
             Long subjectVersionId, String subjectSlug, Long avatarCandidateId, boolean avatarRemoval) {
         this(id, skillVersionId, namespace, skillSlug, version, status, submittedBy, submittedByName,
                 reviewedBy, reviewedByName, reviewComment, submittedAt, reviewedAt, subjectType, subjectId,
-                subjectVersionId, subjectSlug, avatarCandidateId, avatarRemoval, null, null, "USER");
-    }
-    public ReviewTaskResponse(Long id, Long skillVersionId, String namespace, String skillSlug, String version,
-            String status, String submittedBy, String submittedByName, String reviewedBy, String reviewedByName,
-            String reviewComment, Instant submittedAt, Instant reviewedAt, String subjectType, Long subjectId,
-            Long subjectVersionId, String subjectSlug) {
-        this(id, skillVersionId, namespace, skillSlug, version, status, submittedBy, submittedByName,
-                reviewedBy, reviewedByName, reviewComment, submittedAt, reviewedAt, subjectType, subjectId,
-                subjectVersionId, subjectSlug, null, false);
+                subjectVersionId, subjectSlug, avatarCandidateId, avatarRemoval, null, null);
     }
 
     /** Backward-compatible constructor for Skill-only callers and tests. */

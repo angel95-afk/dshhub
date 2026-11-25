@@ -6,7 +6,7 @@ import { APP_SHELL_PAGE_CLASS_NAME } from '@/app/page-shell-style'
 import { DashboardPageHeader } from '@/shared/components/dashboard-page-header'
 import {
   Star, Heart, Package, Boxes, Key, Shield, Flag, Globe,
-  UserCog, Lock, Bell, Clock, ChevronDown, ChevronRight, Github,
+  UserCog, Lock, Bell, Clock, ChevronDown, ChevronRight,
 } from 'lucide-react'
 
 /**
@@ -60,7 +60,6 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
     items: [
       { key: 'reviewCenter', icon: Shield, label: 'reviewCenter.title', to: '/dashboard/reviews', analyticsId: 'review.queue.open', review: true },
       { key: 'governance', icon: Flag, label: 'sidebar.governance', to: '/dashboard/governance', analyticsId: 'governance.center.open', admin: true },
-      { key: 'githubSync', icon: Github, label: 'sidebar.githubSync', to: '/dashboard/github-sync', analyticsId: 'github.sync.open', superAdmin: true },
     ],
   },
 ]

@@ -19,6 +19,9 @@ class FlywayMigrationGuardrailTest {
     private static final Pattern VERSIONED_MIGRATION_PATTERN =
             Pattern.compile("^V(?<version>\\d+)__(?<description>.+)\\.sql$");
 
+    /** Versions at or above this floor belong to the fork and may float above the upstream band. */
+    private static final int FORK_VERSION_FLOOR = 10000;
+
     @Test
     void versionedMigrations_mustUseUniqueVersions() throws IOException {
         Map<Integer, List<String>> versions = new LinkedHashMap<>();
@@ -41,6 +44,15 @@ class FlywayMigrationGuardrailTest {
         assertThat(duplicates).isEmpty();
     }
 
+    /**
+     * Upstream keeps publishing V1..VN, and those numbers renumber on every merge. This fork
+     * therefore owns a high band (>= {@value #FORK_VERSION_FLOOR}) for its own migrations, so
+     * an upstream release can never collide with a fork version.
+     *
+     * <p>The constraint is split rather than dropped: the low band must still be contiguous
+     * from V1 with no gaps, and the high band must contain no duplicate. Duplicates across the
+     * whole set are covered by {@link #versionedMigrations_mustUseUniqueVersions()}.
+     */
     @Test
     void versionedMigrations_mustRemainContiguous() throws IOException {
         List<Integer> versions = migrationFiles().stream()
@@ -50,15 +62,25 @@ class FlywayMigrationGuardrailTest {
                 .sorted()
                 .toList();
 
+        List<Integer> lowBand = versions.stream()
+                .filter(version -> version < FORK_VERSION_FLOOR)
+                .toList();
+        List<Integer> highBand = versions.stream()
+                .filter(version -> version >= FORK_VERSION_FLOOR)
+                .toList();
+
+        assertThat(lowBand).isNotEmpty();
+
         List<String> gaps = new ArrayList<>();
-        for (int expected = 1; expected <= versions.size(); expected++) {
-            int actual = versions.get(expected - 1);
+        for (int expected = 1; expected <= lowBand.size(); expected++) {
+            int actual = lowBand.get(expected - 1);
             if (actual != expected) {
                 gaps.add("expected V" + expected + " but found V" + actual);
             }
         }
 
         assertThat(gaps).isEmpty();
+        assertThat(highBand.stream().distinct().count()).isEqualTo(highBand.size());
     }
 
     @Test

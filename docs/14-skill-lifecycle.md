@@ -212,8 +212,8 @@ Bundle 操作持久化发起方式与能力快照，恢复／重试不从 worker
 
 ## 8. 依据与验证锚点
 
-- 正式语义：[核心语义规则 §6](./oss-02-core-semantic-rules.md#61-状态转换表)、[Bundle 发布规格](../openspec/changes/add-suite-bundle-publishing/specs/suite-bundle-publishing/spec.md)；Bundle 不自动撤回，SuiteVersion 使用独立模型。
-- 提升展示信息：[版本展示名规格](../openspec/changes/refine-display-name-publishing/specs/skill-display-name/spec.md)要求标题与摘要匹配所选版本快照，取代旧提升方案中读取来源 Skill 当前展示信息的描述；[PromotionService](../server/skillhub-domain/src/main/java/com/iflytek/skillhub/domain/review/PromotionService.java)保留空元数据的兼容回退。
+- 正式语义：[核心语义规则 §6](./oss-02-core-semantic-rules.md#61-状态转换表)、[Bundle 发布规格](../openspec/changes/archive/add-suite-bundle-publishing/specs/suite-bundle-publishing/spec.md)；Bundle 不自动撤回，SuiteVersion 使用独立模型。
+- 提升展示信息：[版本展示名规格](../openspec/changes/archive/refine-display-name-publishing/specs/skill-display-name/spec.md)要求标题与摘要匹配所选版本快照，取代旧提升方案中读取来源 Skill 当前展示信息的描述；[PromotionService](../server/skillhub-domain/src/main/java/com/iflytek/skillhub/domain/review/PromotionService.java)保留空元数据的兼容回退。
 - 上传及 PRIVATE 指针：[SkillPublishService](../server/skillhub-domain/src/main/java/com/iflytek/skillhub/domain/skill/service/SkillPublishService.java)、[发布测试](../server/skillhub-domain/src/test/java/com/iflytek/skillhub/domain/skill/service/SkillPublishServiceTest.java)。
 - 扫描：[SecurityScanService](../server/skillhub-domain/src/main/java/com/iflytek/skillhub/domain/security/SecurityScanService.java)、[扫描测试](../server/skillhub-domain/src/test/java/com/iflytek/skillhub/domain/security/SecurityScanServiceTest.java)。
 - 提审 / PRIVATE 确认：[SkillReviewSubmitService](../server/skillhub-domain/src/main/java/com/iflytek/skillhub/domain/skill/service/SkillReviewSubmitService.java)、[提审与确认测试](../server/skillhub-domain/src/test/java/com/iflytek/skillhub/domain/skill/service/SkillReviewSubmitServiceTest.java)。

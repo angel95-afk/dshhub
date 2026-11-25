@@ -16,7 +16,6 @@ import com.iflytek.skillhub.domain.skill.service.SkillLifecycleProjectionService
 import com.iflytek.skillhub.domain.user.UserAccount;
 import com.iflytek.skillhub.domain.user.UserAccountRepository;
 import com.iflytek.skillhub.search.SearchQuery;
-import com.iflytek.skillhub.search.SkillSearchSource;
 import com.iflytek.skillhub.search.SearchQueryService;
 import com.iflytek.skillhub.search.SearchResult;
 import com.iflytek.skillhub.search.SearchVisibilityScope;
@@ -82,7 +81,7 @@ class SkillSearchAppServiceTest {
     }
 
     @Test
-    void sourceFilterShouldRetainNamespaceLabelsAndScope() {
+    void searchShouldRetainNamespaceLabelsAndScope() {
         Namespace namespace = new Namespace("team", "Team", "owner");
         setField(namespace, "id", 7L);
         when(namespaceService.getNamespaceBySlugForRead("team", "member", Map.of(7L, NamespaceRole.MEMBER)))
@@ -90,10 +89,9 @@ class SkillSearchAppServiceTest {
         when(rbacService.getUserRoleCodes("member")).thenReturn(Set.of());
         when(searchQueryService.search(any())).thenReturn(new SearchResult(List.of(), 0, 2, 12));
         service.search("needle", "team", "downloads", 2, 12, List.of("OFFICIAL"), "member",
-                Map.of(7L, NamespaceRole.MEMBER), SkillSearchSource.GITHUB);
+                Map.of(7L, NamespaceRole.MEMBER));
         ArgumentCaptor<SearchQuery> query = ArgumentCaptor.forClass(SearchQuery.class);
         verify(searchQueryService).search(query.capture());
-        assertEquals(SkillSearchSource.GITHUB, query.getValue().source());
         assertEquals(7L, query.getValue().namespaceId());
         assertEquals(List.of("official"), query.getValue().labelSlugs());
         assertEquals(Set.of(7L), query.getValue().visibilityScope().memberNamespaceIds());
@@ -137,7 +135,6 @@ class SkillSearchAppServiceTest {
                         .stream().map(item -> item.withVisibleSuites(true)).toList());
         SkillSearchAppService.SearchResponse response = service.search("skill", null, "newest", 0, 1, null, null);
         assertEquals(true, response.items().getFirst().hasVisibleSuites());
-        assertEquals("platform", response.items().getFirst().source());
         verify(suiteProjection, times(1)).enrich(anyList(), org.mockito.ArgumentMatchers.isNull());
 
         assertEquals(1, response.items().size());
@@ -203,7 +200,6 @@ class SkillSearchAppServiceTest {
         second.setLatestVersionId(102L);
 
         SkillVersion firstVersion = publishedVersion(10L, 101L, "1.0.0");
-        setField(firstVersion, "githubSyncRevision", 2);
         SkillVersion secondVersion = publishedVersion(11L, 102L, "2.0.0");
 
         Namespace namespace = new Namespace("team-a", "Team A", "owner-1");
@@ -220,9 +216,7 @@ class SkillSearchAppServiceTest {
 
         assertEquals(2, response.items().size());
         assertEquals("1.0.0", response.items().get(0).publishedVersion().version());
-        assertEquals(2, response.items().get(0).publishedVersion().syncRevision());
         assertEquals("2.0.0", response.items().get(1).publishedVersion().version());
-        assertNull(response.items().get(1).publishedVersion().syncRevision());
         verify(skillVersionRepository, times(1)).findByIdIn(List.of(101L, 102L));
         verify(skillVersionRepository, times(0))
                 .findBySkillIdInAndStatus(List.of(10L, 11L), com.iflytek.skillhub.domain.skill.SkillVersionStatus.PUBLISHED);

@@ -35,7 +35,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
-@Import({JpaReviewQueueQueryRepository.class, GithubReviewGroupQueryRepository.class})
+@Import(JpaReviewQueueQueryRepository.class)
 @Testcontainers
 class JpaReviewQueueQueryRepositoryTest {
     @Container
@@ -54,8 +54,6 @@ class JpaReviewQueueQueryRepositoryTest {
 
     @Autowired TestEntityManager entities;
     @Autowired JpaReviewQueueQueryRepository repository;
-    @Autowired GithubReviewGroupQueryRepository groups;
-
     @BeforeEach
     void users() {
         entities.persist(new UserAccount("queue-owner", "Owner", null, null));
@@ -73,7 +71,7 @@ class JpaReviewQueueQueryRepositoryTest {
         ReviewTask newer = task(second, "newer", "1.0.0", "2026-01-02T00:00:00Z");
         task(foreign, "not-visible", "1.0.0", "2026-01-04T00:00:00Z");
         task(catalog, "not-a-team", "1.0.0", "2026-01-03T00:00:00Z");
-        var filter = filter("PENDING", null, "", null, null);
+        var filter = filter("PENDING", null, "", null);
         Set<Long> managed = Set.of(first.getId(), second.getId(), catalog.getId());
         var page = repository.list(filter, false, managed, page(0, 1));
         assertThat(page.getTotalElements()).isEqualTo(2);
@@ -83,7 +81,7 @@ class JpaReviewQueueQueryRepositoryTest {
         assertThat(repository.list(filter, false, managed, page(4, 1)).getTotalElements()).isEqualTo(2);
         assertThat(repository.list(filter, false, Set.of(), page(0, 20))).isEmpty();
         assertThat(repository.list(filter, true, Set.of(), page(0, 20)).getTotalElements()).isEqualTo(4);
-        assertThat(repository.list(filter("PENDING", foreign.getId(), "", null, null), false, managed, page(0, 20)))
+        assertThat(repository.list(filter("PENDING", foreign.getId(), "", null), false, managed, page(0, 20)))
                 .isEmpty();
     }
 
@@ -98,19 +96,19 @@ class JpaReviewQueueQueryRepositoryTest {
                  "shortDescriptionOverride":"effective summary"}
                 """).setParameter("id", match.getSkillVersionId()).executeUpdate();
         task(team, "other-skill", "1.0.0", "2026-01-02T00:00:00Z");
-        var literal = repository.list(filter(null, null, "%_", null, "USER"), true, Set.of(), page(0, 20));
+        var literal = repository.list(filter(null, null, "%_", null), true, Set.of(), page(0, 20));
         assertThat(literal.getContent()).singleElement().satisfies(entry -> {
             assertThat(entry.task().getId()).isEqualTo(match.getId());
             assertThat(entry.displayName()).isEqualTo("Review 100%_ready");
             assertThat(entry.summary()).isEqualTo("effective summary");
         });
-        assertThat(repository.list(filter(null, null, "@queue-search/percent-skill", null, null), true, Set.of(), page(0, 20)))
+        assertThat(repository.list(filter(null, null, "@queue-search/percent-skill", null), true, Set.of(), page(0, 20)))
                 .hasSize(1);
-        assertThat(repository.list(filter(null, null, "author name", null, null), true, Set.of(), page(0, 20)))
+        assertThat(repository.list(filter(null, null, "author name", null), true, Set.of(), page(0, 20)))
                 .hasSize(2);
-        assertThat(repository.list(filter(null, null, "queue-author", null, null), true, Set.of(), page(0, 20)))
+        assertThat(repository.list(filter(null, null, "queue-author", null), true, Set.of(), page(0, 20)))
                 .hasSize(2);
-        assertThat(repository.list(filter(null, null, "effective summary", null, null), true, Set.of(), page(0, 20)))
+        assertThat(repository.list(filter(null, null, "effective summary", null), true, Set.of(), page(0, 20)))
                 .isEmpty();
     }
 
@@ -129,61 +127,18 @@ class JpaReviewQueueQueryRepositoryTest {
         entities.persistFlushFind(ReviewTask.forVisibility(skill, SkillVisibility.PUBLIC, "queue-author"));
         ReviewTask rejected = task(team, "rejected", "1.0.0", "2026-01-03T00:00:00Z");
         rejected.setStatus(ReviewTaskStatus.REJECTED); entities.flush();
-        assertThat(repository.list(filter(null, null, "", "VERSION_UPDATE", null), true, Set.of(), page(0, 20)))
+        assertThat(repository.list(filter(null, null, "", "VERSION_UPDATE"), true, Set.of(), page(0, 20)))
                 .singleElement().satisfies(entry -> assertThat(entry.task().getId()).isEqualTo(first.getId()));
         for (String kind : new String[]{"SUITE_PUBLISH", "AVATAR_CHANGE", "VISIBILITY_CHANGE"}) {
-            assertThat(repository.list(filter(null, null, "", kind, null), true, Set.of(), page(0, 20)))
+            assertThat(repository.list(filter(null, null, "", kind), true, Set.of(), page(0, 20)))
                     .singleElement().satisfies(entry -> assertThat(entry.reviewKind()).isEqualTo(kind));
         }
-        assertThat(repository.list(filter("REJECTED", null, "", null, null), true, Set.of(), page(0, 20)))
+        assertThat(repository.list(filter("REJECTED", null, "", null), true, Set.of(), page(0, 20)))
                 .singleElement().satisfies(entry -> assertThat(entry.task().getId()).isEqualTo(rejected.getId()));
-        assertThat(repository.list(filter(null, null, "", null, null), true, Set.of(), page(0, 20)).getTotalElements())
+        assertThat(repository.list(filter(null, null, "", null), true, Set.of(), page(0, 20)).getTotalElements())
                 .isEqualTo(5);
     }
 
-    @Test
-    void githubAndUserOriginsShareQueueButRemainSeparatelyFilterable() {
-        Namespace team = namespace("queue-origins", NamespaceType.TEAM);
-        ReviewTask user = task(team, "user", "1.0.0", "2026-01-01T00:00:00Z");
-        ReviewTask sync = task(team, "sync", "1.0.0", "2026-01-02T00:00:00Z");
-        java.util.UUID run = java.util.UUID.randomUUID();
-        java.util.UUID task = java.util.UUID.randomUUID();
-        java.util.UUID admission = java.util.UUID.randomUUID();
-        java.util.UUID upload = java.util.UUID.randomUUID();
-        java.util.UUID ingestion = java.util.UUID.randomUUID();
-        execute("INSERT INTO github_sync_run (id, namespace_id, kind) VALUES (?1, ?2, 'REPOSITORY_SYNC')", run, team.getId());
-        execute("""
-                INSERT INTO github_sync_task (id, run_id, namespace_id, kind, mode, dedupe_key, snapshot_json)
-                VALUES (?1, ?2, ?3, 'REPOSITORY_SYNC', 'FULL', 'queue-test', CAST('{}' AS jsonb))
-                """, task, run, team.getId());
-        execute("""
-                INSERT INTO github_sync_package_admission
-                  (id, task_id, namespace_id, repository_id, commit_sha, skill_path, lease_generation)
-                VALUES (?1, ?2, ?3, 100, ?4, 'skill', 1)
-                """, admission, task, team.getId(), "a".repeat(40));
-        execute("""
-                INSERT INTO github_sync_staged_upload
-                  (id, admission_id, object_key, mode, ticket_hash, size_bytes, sha256, status, expires_at)
-                VALUES (?1, ?2, 'queue-test', 'LOCAL_STREAM', ?3, 1, ?3, 'ACCEPTED', CURRENT_TIMESTAMP + INTERVAL '1 day')
-                """, upload, admission, "b".repeat(64));
-        execute("""
-                INSERT INTO github_sync_package_ingestion
-                  (id, task_id, admission_id, upload_id, namespace_id, repository_id, commit_sha,
-                   skill_path, object_key, size_bytes, sha256, status)
-                VALUES (?1, ?2, ?3, ?4, ?5, 100, ?6, 'skill', 'queue-test', 1, ?7, 'VALIDATED')
-                """, ingestion, task, admission, upload, team.getId(), "a".repeat(40), "b".repeat(64));
-        execute("UPDATE review_task SET origin_type = 'GITHUB_SYNC', github_sync_ingestion_id = ?1 WHERE id = ?2",
-                ingestion, sync.getId());
-        entities.clear();
-        assertThat(repository.list(filter("PENDING", null, "", null, null), false, Set.of(team.getId()), page(0, 1)))
-                .singleElement().satisfies(entry -> assertThat(entry.task().getId()).isEqualTo(sync.getId()));
-        assertThat(repository.list(filter("PENDING", null, "", null, null), false, Set.of(team.getId()), page(0, 1))
-                .getTotalElements()).isEqualTo(2);
-        assertThat(repository.list(filter(null, null, "", null, "USER"), true, Set.of(), page(0, 20)))
-                .singleElement().satisfies(entry -> assertThat(entry.task().getId()).isEqualTo(user.getId()));
-        assertThat(repository.list(filter(null, null, "", null, "GITHUB_SYNC"), true, Set.of(), page(0, 20)))
-                .singleElement().satisfies(entry -> assertThat(entry.task().getId()).isEqualTo(sync.getId()));
-    }
 
     private void execute(String sql, Object... parameters) {
         var query = entities.getEntityManager().createNativeQuery(sql);
@@ -199,13 +154,13 @@ class JpaReviewQueueQueryRepositoryTest {
                 suite.getId(), "2.0.0", "Pending B", "Pending summary", SkillVisibility.PUBLIC, "queue-author"));
         ReviewTask task = entities.persistFlushFind(ReviewTask.forSuiteVersion(
                 pending.getId(), suite.getId(), team.getId(), "2.0.0", "queue-author"));
-        assertThat(repository.list(filter(null, null, "Pending B", null, null), true, Set.of(), page(0, 20)))
+        assertThat(repository.list(filter(null, null, "Pending B", null), true, Set.of(), page(0, 20)))
                 .singleElement().satisfies(entry -> {
                     assertThat(entry.task().getId()).isEqualTo(task.getId());
                     assertThat(entry.displayName()).isEqualTo("Pending B");
                     assertThat(entry.summary()).isEqualTo("Pending summary");
                 });
-        assertThat(repository.list(filter(null, null, "Published A", null, null), true, Set.of(), page(0, 20))).isEmpty();
+        assertThat(repository.list(filter(null, null, "Published A", null), true, Set.of(), page(0, 20))).isEmpty();
     }
 
     @Test
@@ -227,44 +182,15 @@ class JpaReviewQueueQueryRepositoryTest {
                     mapper.writeValueAsString(metadata), task.getSkillVersionId());
             expected.put(task.getId(), metadata);
         }
-        var entries = repository.list(filter(null, team.getId(), "", null, null), true, Set.of(), page(0, 20));
+        var entries = repository.list(filter(null, team.getId(), "", null), true, Set.of(), page(0, 20));
         assertThat(entries).hasSize(cases.length);
         for (var entry : entries) {
             assertThat(entry.displayName()).isEqualTo(expected.get(entry.task().getId()).displayName());
             assertThat(entry.summary()).isEqualTo(expected.get(entry.task().getId()).shortDescription());
         }
-        assertThat(repository.list(filter(null, null, "Trimmed", null, null), true, Set.of(), page(0, 20))).hasSize(1);
+        assertThat(repository.list(filter(null, null, "Trimmed", null), true, Set.of(), page(0, 20))).hasSize(1);
     }
 
-    @Test
-    void fixedSnapshotGroupsAreAuthorizedAndCountedBeforeMemberPagination() {
-        Namespace team = namespace("group-team", NamespaceType.TEAM);
-        Namespace other = namespace("group-other", NamespaceType.TEAM);
-        long snapshot = snapshot(team, "skills", 3);
-        snapshot(other, "private-repository", 2);
-        entities.clear();
-        var filter = filter("PENDING", null, "", null, "GITHUB_SYNC");
-        var result = groups.list(filter, Set.of(team.getId()), 0, 1, false);
-        assertThat(result.total()).isEqualTo(1);
-        assertThat(result.items()).singleElement().satisfies(group -> {
-            assertThat(group.snapshotId()).isEqualTo(snapshot);
-            assertThat(group.total()).isEqualTo(3);
-            assertThat(group.scanPassed()).isEqualTo(1);
-            assertThat(group.scanWaiting()).isEqualTo(1);
-            assertThat(group.scanBlocked()).isEqualTo(1);
-        });
-        assertThat(repository.list(filter("PENDING", null, "upstream/skills", null, "GITHUB_SYNC"), false,
-                Set.of(team.getId()), page(0, 1)).getTotalElements()).isEqualTo(3);
-        var first = groups.members(filter, Set.of(team.getId()), snapshot, 0, 2, false);
-        var second = groups.members(filter, Set.of(team.getId()), snapshot, 1, 2, false);
-        assertThat(first.total()).isEqualTo(3);
-        assertThat(first.items()).hasSize(2);
-        assertThat(second.items()).hasSize(1).doesNotContainAnyElementsOf(first.items());
-        assertThat(groups.members(filter, Set.of(other.getId()), snapshot, 0, 20, false).items()).isEmpty();
-        assertThat(groups.list(filter("PENDING", null, "skills", null, "GITHUB_SYNC"), Set.of(team.getId()), 0, 20, false).total()).isEqualTo(1);
-        assertThat(groups.list(filter("PENDING", null, "%", null, "GITHUB_SYNC"), Set.of(team.getId()), 0, 20, false).items()).isEmpty();
-        assertThat(groups.list(filter, Set.of(), 0, 20, false).items()).isEmpty();
-    }
 
     @Test
     void verdictMatchesOnlyTheCurrentSuccessfulRoundWithinTheAuthorizedPage() {
@@ -280,7 +206,7 @@ class JpaReviewQueueQueryRepositoryTest {
         audit(update, "DANGEROUS", true, null);
         audit(other, "DANGEROUS", true, null);
         audit(hidden, "DANGEROUS", true, null);
-        var risk = new ReviewQueueQueryRepository.Filter("PENDING", null, "", null, null, "DANGEROUS");
+        var risk = new ReviewQueueQueryRepository.Filter("PENDING", null, "", null, "DANGEROUS");
         var managed = Set.of(team.getId());
         var firstPage = repository.list(risk, false, managed, page(0, 1));
         var secondPage = repository.list(risk, false, managed, page(1, 1));
@@ -290,9 +216,9 @@ class JpaReviewQueueQueryRepositoryTest {
         audit(update, "SUSPICIOUS", false, null);
         audit(other, "SUSPICIOUS", true, "timeout");
         assertThat(repository.list(risk, false, managed, page(0, 20))).isEmpty();
-        assertThat(repository.list(new ReviewQueueQueryRepository.Filter("PENDING", null, "", null, null,
+        assertThat(repository.list(new ReviewQueueQueryRepository.Filter("PENDING", null, "", null,
                 "SUSPICIOUS"), false, managed, page(0, 20))).isEmpty();
-        var all = repository.list(filter("PENDING", null, "", null, null), false, managed, page(0, 20));
+        var all = repository.list(filter("PENDING", null, "", null), false, managed, page(0, 20));
         assertThat(all.getContent()).extracting(ReviewQueueQueryRepository.Entry::scanVerdict)
                 .containsExactlyInAnyOrder("SAFE", null, null);
     }
@@ -338,7 +264,7 @@ class JpaReviewQueueQueryRepositoryTest {
                 });
         ReflectionTestUtils.setField(target, "entityManager", intercepted);
         try {
-            var risk = new ReviewQueueQueryRepository.Filter("PENDING", team.getId(), "", null, null, "DANGEROUS");
+            var risk = new ReviewQueueQueryRepository.Filter("PENDING", team.getId(), "", null, "DANGEROUS");
             var result = repository.list(risk, false, Set.of(team.getId()), page(0, 20));
             assertThat(restarted).isTrue();
             assertThat(result.getTotalElements()).isEqualTo(1);
@@ -377,34 +303,6 @@ class JpaReviewQueueQueryRepositoryTest {
         return ((Number) query.getSingleResult()).longValue();
     }
 
-    private long snapshot(Namespace team, String repositoryName, int count) {
-        var run = java.util.UUID.randomUUID(); var acquisition = java.util.UUID.randomUUID();
-        long source = scalar("INSERT INTO github_source_binding (namespace_id, repository_id, owner_login, repository_name, visibility) VALUES (?1, 100, 'upstream', ?2, 'PUBLIC') RETURNING id", team.getId(), repositoryName);
-        execute("INSERT INTO github_sync_run (id, namespace_id, kind) VALUES (?1, ?2, 'REPOSITORY_SYNC')", run, team.getId());
-        execute("INSERT INTO github_sync_task (id, run_id, namespace_id, source_id, kind, mode, dedupe_key, snapshot_json) VALUES (?1, ?2, ?3, ?4, 'REPOSITORY_SYNC', 'FULL', ?5, CAST('{}' AS jsonb))", acquisition, run, team.getId(), source, acquisition.toString());
-        long snapshot = scalar("INSERT INTO github_repository_snapshot (source_id, acquisition_task_id, commit_sha, ignore_patterns, captured_at) VALUES (?1, ?2, ?3, CAST('[]' AS jsonb), CURRENT_TIMESTAMP) RETURNING id", source, acquisition, "a".repeat(40));
-        for (int index = 0; index < count; index++) {
-            var admission = java.util.UUID.randomUUID(); var upload = java.util.UUID.randomUUID(); var ingestion = java.util.UUID.randomUUID();
-            String path = "skill-" + index;
-            String hash = java.util.UUID.randomUUID().toString().replace("-", "").repeat(2);
-            var review = task(team, path, "1.0.0", "2026-01-01T00:00:00Z");
-            execute("INSERT INTO github_sync_package_admission (id, task_id, namespace_id, repository_id, commit_sha, skill_path, lease_generation) VALUES (?1, ?2, ?3, 100, ?4, ?5, 1)", admission, acquisition, team.getId(), "a".repeat(40), path);
-            execute("INSERT INTO github_sync_staged_upload (id, admission_id, object_key, mode, ticket_hash, size_bytes, sha256, status, expires_at) VALUES (?1, ?2, ?3, 'LOCAL_STREAM', ?4, 1, ?4, 'ACCEPTED', CURRENT_TIMESTAMP + INTERVAL '1 day')", upload, admission, source + "/" + path, hash);
-            execute("INSERT INTO github_sync_package_ingestion (id, task_id, admission_id, upload_id, namespace_id, repository_id, commit_sha, skill_path, object_key, size_bytes, sha256, status) VALUES (?1, ?2, ?3, ?4, ?5, 100, ?6, ?7, ?7, 1, ?8, 'VALIDATED')", ingestion, acquisition, admission, upload, team.getId(), "a".repeat(40), path, hash);
-            if (index < 2) {
-                var audit = new com.iflytek.skillhub.domain.security.SecurityAudit(review.getSkillVersionId(),
-                        com.iflytek.skillhub.domain.security.ScannerType.SKILL_SCANNER);
-                audit.setVerdict(index == 0 ? com.iflytek.skillhub.domain.security.SecurityVerdict.SAFE
-                        : com.iflytek.skillhub.domain.security.SecurityVerdict.DANGEROUS);
-                audit.setIsSafe(index == 0);
-                audit.setScannedAt(Instant.now());
-                entities.persistAndFlush(audit);
-            }
-            execute("INSERT INTO github_repository_snapshot_member (snapshot_id, skill_path, ingestion_id) VALUES (?1, ?2, ?3)", snapshot, path, ingestion);
-            execute("UPDATE review_task SET origin_type = 'GITHUB_SYNC', github_sync_ingestion_id = ?1 WHERE id = ?2", ingestion, review.getId());
-        }
-        return snapshot;
-    }
 
     private Namespace namespace(String slug, NamespaceType type) {
         Namespace namespace = new Namespace(slug, slug, "queue-owner"); namespace.setType(type);
@@ -419,8 +317,8 @@ class JpaReviewQueueQueryRepositoryTest {
         return entities.persistFlushFind(task);
     }
 
-    private ReviewQueueQueryRepository.Filter filter(String status, Long namespace, String query, String kind, String origin) {
-        return new ReviewQueueQueryRepository.Filter(status, namespace, query, kind, origin);
+    private ReviewQueueQueryRepository.Filter filter(String status, Long namespace, String query, String kind) {
+        return new ReviewQueueQueryRepository.Filter(status, namespace, query, kind);
     }
 
     private PageRequest page(int page, int size) {

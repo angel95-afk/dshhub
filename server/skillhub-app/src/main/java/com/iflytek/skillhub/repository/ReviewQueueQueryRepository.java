@@ -9,9 +9,9 @@ import org.springframework.data.domain.Pageable;
 public interface ReviewQueueQueryRepository {
     Page<Entry> list(Filter filter, boolean platformReviewer, Set<Long> managedNamespaceIds, Pageable pageable);
 
-    record Filter(String status, Long namespaceId, String query, String reviewKind, String originType, String scanVerdict) {
-        public Filter(String status, Long namespaceId, String query, String reviewKind, String originType) {
-            this(status, namespaceId, query, reviewKind, originType, null);
+    record Filter(String status, Long namespaceId, String query, String reviewKind, String scanVerdict) {
+        public Filter(String status, Long namespaceId, String query, String reviewKind) {
+            this(status, namespaceId, query, reviewKind, null);
         }
     }
     record Entry(ReviewTask task, String displayName, String summary, String reviewKind, String scanVerdict) {}

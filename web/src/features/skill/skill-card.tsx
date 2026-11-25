@@ -8,7 +8,7 @@ import { SkillAvatar } from './skill-avatar'
 import { getHeadlineVersion } from '@/shared/lib/skill-lifecycle'
 import { formatCompactCount } from '@/shared/lib/number-format'
 import { formatRelativeTime } from '@/shared/lib/format-relative-time'
-import { GitBranch, LayoutGrid, Bookmark, Boxes, ShieldCheck, User, Clock } from 'lucide-react'
+import { Bookmark, Boxes, ShieldCheck, User, Clock } from 'lucide-react'
 
 interface SkillCardProps {
   variant?: 'default' | 'market'
@@ -81,12 +81,6 @@ export function SkillCard({ skill, onClick, highlightStarred = true, analyticsId
                   name={`@${skill.namespace}`}
                   title={`@${skill.namespace}`}
                 />
-                {skill.source === 'github' || skill.source === 'platform' ? (
-                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                    {skill.source === 'github' ? <GitBranch aria-hidden="true" className="h-3 w-3" /> : null}
-                    {t(`search.source.${skill.source}`)}
-                  </span>
-                ) : null}
                 {skill.hasVisibleSuites === true ? (
                   <span
                     className="inline-flex max-w-full shrink-0 items-center gap-1 rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-xs font-medium text-secondary-foreground"
@@ -174,12 +168,6 @@ export function SkillCard({ skill, onClick, highlightStarred = true, analyticsId
               <span className="inline-flex min-w-0 items-center gap-1" title={new Date(skill.updatedAt).toLocaleString(i18n.language)}>
                 <Clock aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">{formatRelativeTime(skill.updatedAt, i18n.language)}</span>
-              </span>
-            ) : null}
-            {skill.source === 'github' || skill.source === 'platform' ? (
-              <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 text-xs" title={t(`search.source.${skill.source}Hint`)}>
-                {skill.source === 'github' ? <GitBranch aria-hidden="true" className="h-3.5 w-3.5" /> : <LayoutGrid aria-hidden="true" className="h-3.5 w-3.5" />}
-                {t(`skillCard.source.${skill.source}`)}
               </span>
             ) : null}
           </div>

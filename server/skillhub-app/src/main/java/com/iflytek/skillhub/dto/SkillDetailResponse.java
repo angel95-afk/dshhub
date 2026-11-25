@@ -33,7 +33,6 @@ public record SkillDetailResponse(
         PageResponse<SkillSuiteReferenceResponse> memberOfSuites,
         String avatarUrl,
         boolean ownerReadOnly,
-        GithubSkillSourceResponse githubSource,
         @io.swagger.v3.oas.annotations.media.Schema(nullable = true, format = "uri", description = "Absolute public skill page URL, or null when no trusted public website is configured")
         String webUrl
 ) {
@@ -66,10 +65,9 @@ public record SkillDetailResponse(
         List<SkillSuiteReferenceResponse> entryForSuites,
         PageResponse<SkillSuiteReferenceResponse> memberOfSuites,
         String avatarUrl,
-        boolean ownerReadOnly,
-        GithubSkillSourceResponse githubSource
+        boolean ownerReadOnly
     ) {
-        this(id, slug, displayName, ownerId, ownerDisplayName, summary, visibility, status, downloadCount, starCount, subscriptionCount, ratingAvg, ratingCount, hidden, namespace, labels, canManageLifecycle, canSubmitPromotion, canInteract, canReport, headlineVersion, publishedVersion, ownerPreviewVersion, ownerPreviewReviewComment, resolutionMode, entryForSuites, memberOfSuites, avatarUrl, ownerReadOnly, githubSource, null);
+        this(id, slug, displayName, ownerId, ownerDisplayName, summary, visibility, status, downloadCount, starCount, subscriptionCount, ratingAvg, ratingCount, hidden, namespace, labels, canManageLifecycle, canSubmitPromotion, canInteract, canReport, headlineVersion, publishedVersion, ownerPreviewVersion, ownerPreviewReviewComment, resolutionMode, entryForSuites, memberOfSuites, avatarUrl, ownerReadOnly, null);
     }
 
     public SkillDetailResponse(Long id,
@@ -100,6 +98,6 @@ public record SkillDetailResponse(
         List<SkillSuiteReferenceResponse> entryForSuites,
         PageResponse<SkillSuiteReferenceResponse> memberOfSuites,
         String avatarUrl) {
-        this(id, slug, displayName, ownerId, ownerDisplayName, summary, visibility, status, downloadCount, starCount, subscriptionCount, ratingAvg, ratingCount, hidden, namespace, labels, canManageLifecycle, canSubmitPromotion, canInteract, canReport, headlineVersion, publishedVersion, ownerPreviewVersion, ownerPreviewReviewComment, resolutionMode, entryForSuites, memberOfSuites, avatarUrl, false, null);
+        this(id, slug, displayName, ownerId, ownerDisplayName, summary, visibility, status, downloadCount, starCount, subscriptionCount, ratingAvg, ratingCount, hidden, namespace, labels, canManageLifecycle, canSubmitPromotion, canInteract, canReport, headlineVersion, publishedVersion, ownerPreviewVersion, ownerPreviewReviewComment, resolutionMode, entryForSuites, memberOfSuites, avatarUrl, false);
     }
 }

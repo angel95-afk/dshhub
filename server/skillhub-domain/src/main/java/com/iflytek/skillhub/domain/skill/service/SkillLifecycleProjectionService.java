@@ -38,14 +38,13 @@ public class SkillLifecycleProjectionService {
             String status,
             String parsedMetadataJson,
             String displayName,
-            String summary,
-            Integer syncRevision
+            String summary
     ) {
         public VersionProjection(Long id, String version, String status, String parsedMetadataJson) {
-            this(id, version, status, parsedMetadataJson, null, null, null);
+            this(id, version, status, parsedMetadataJson, null, null);
         }
         public VersionProjection(Long id, String version, String status) {
-            this(id, version, status, null, null, null, null);
+            this(id, version, status, null, null, null);
         }
     }
 
@@ -192,8 +191,7 @@ public class SkillLifecycleProjectionService {
                 version.getStatus().name(),
                 version.getParsedMetadataJson(),
                 metadata == null ? null : metadata.displayName(),
-                metadata == null ? null : metadata.shortDescription(),
-                version.getGithubSyncRevision()
+                metadata == null ? null : metadata.shortDescription()
         );
     }
 }

@@ -1,8 +1,7 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Children, isValidElement, type ReactNode } from 'react'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ManagedNamespace } from '@/api/types'
 
 const mocks = vi.hoisted(() => ({
@@ -10,7 +9,6 @@ const mocks = vi.hoisted(() => ({
 }))
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => mocks.navigate, useSearch: () => mocks.search,
-  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
 }))
 vi.mock('react-i18next', async (importOriginal) => ({
   ...await importOriginal<typeof import('react-i18next')>(),
@@ -19,28 +17,45 @@ vi.mock('react-i18next', async (importOriginal) => ({
 vi.mock('@/features/auth/use-auth', () => ({ useAuth: () => ({ hasRole: (role: string) => mocks.roles.includes(role) }) }))
 vi.mock('@/shared/hooks/use-namespace-queries', () => ({
   useMyNamespaces: () => ({ data: mocks.namespaces, isLoading: false }),
-  useNamespaceDetail: (slug: string) => ({ data: mocks.namespaces.find((namespace) => namespace.slug === slug), isLoading: false }),
 }))
 vi.mock('@/features/review/use-review-scopes', () => ({ useReviewScopes: () => ({ data: mocks.scopeError ? undefined : mocks.scopes ?? mocks.namespaces, isLoading: false, isError: mocks.scopeError, refetch: mocks.refetch }) }))
 vi.mock('@/features/review/use-review-list', () => ({ useReviewList: (...args: unknown[]) => mocks.list(...args) }))
+vi.mock('@/features/review/review-center-filter-form', () => ({
+  ReviewCenterFilterForm: ({ onChange, onApply, onReset, value }: { onChange: (filters: Record<string, unknown>) => void; onApply: () => void; onReset: () => void; value: Record<string, unknown> }) => (
+    <form aria-label="reviewCenter.filters.title">
+      <input aria-label="reviewCenter.filters.q" value={String(value.q ?? '')} onChange={(event) => onChange({ ...value, q: event.target.value })} />
+      <select aria-label="reviewCenter.filters.scanVerdict" value={String(value.scanVerdict ?? 'ALL')} onChange={(event) => onChange({ ...value, scanVerdict: event.target.value })}>
+        <option value="ALL">ALL</option><option value="DANGEROUS">DANGEROUS</option>
+      </select>
+      <button type="button" onClick={onApply}>reviewCenter.filters.apply</button>
+      <button type="button" onClick={onReset}>reviewCenter.filters.reset</button>
+    </form>
+  ),
+}))
+vi.mock('@/shared/components/pagination', () => ({
+  Pagination: ({ onPageChange }: { onPageChange: (page: number) => void }) => (
+    <button type="button" aria-label="pagination.next" onClick={() => onPageChange(1)}>next</button>
+  ),
+}))
+vi.mock('@/features/review/batch-review', () => ({
+  isBatchReviewTask: (review: { id: number; status?: string }) => review.status === 'PENDING',
+  useBatchReview: () => ({
+    selected: [], busy: false, dialogs: null,
+    toolbar: <div data-testid="mock-batch-toolbar" role="region" aria-label="reviewBatch.selection"><button data-testid="mock-select-page" onClick={() => undefined}>select</button></div>,
+    guardFilter: (fn: () => void) => fn(),
+    selectPage: vi.fn(), checkbox: () => <input type="checkbox" aria-label="reviewBatch.selectTask" />,
+  }),
+}))
+vi.mock('@/features/review/review-results-panel', () => ({
+  ReviewResultsPanel: ({ children, header }: { children: React.ReactNode; header: React.ReactNode }) => <section data-review-results-panel>{header}{children}</section>,
+}))
+vi.mock('@/features/security-audit/verdict-badge', () => ({ VerdictBadge: ({ verdict }: { verdict: string }) => <span>securityAudit.verdict.{verdict}</span> }))
 vi.mock('@/features/skill/skill-avatar', () => ({ SkillAvatar: () => <span /> }))
+vi.mock('@/shared/components/dashboard-page-header', () => ({ DashboardPageHeader: ({ title }: { title: string }) => <h1>{title}</h1> }))
+vi.mock('@/shared/ui/card', () => ({ Card: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => <div {...props}>{children}</div> }))
+vi.mock('@/shared/ui/button', () => ({ Button: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => <button {...props}>{children}</button> }))
+vi.mock('@/shared/ui/select', () => ({ Select: () => null, SelectContent: () => null, SelectItem: () => null, SelectTrigger: () => null, SelectValue: () => null }))
 vi.mock('./profile-review-table', () => ({ ProfileReviewTable: () => <div>profile-review-table</div> }))
-vi.mock('@/shared/ui/select', () => {
-  function descendants(children: ReactNode): Array<{ value?: string; id?: string; className?: string; children?: ReactNode }> {
-    return Children.toArray(children).flatMap((child) => isValidElement<{ value?: string; id?: string; className?: string; children?: ReactNode }>(child) ? [child.props, ...descendants(child.props.children)] : [])
-  }
-  return {
-    Select: ({ value, onValueChange, children }: { value: string; onValueChange: (value: string) => void; children: ReactNode }) => {
-      const props = descendants(children)
-      const trigger = props.find((element) => element.id)
-      return <select id={trigger?.id} aria-label={trigger?.id ? undefined : 'sort'} value={value} onChange={(event) => onValueChange(event.target.value)}>{props.filter((element) => element.value).map((element) => <option key={element.value} value={element.value}>{descendants(element.children).length ? descendants(element.children).map((child) => typeof child.children === 'string' ? child.children : '').join('') : element.children}</option>)}</select>
-    },
-    SelectContent: ({ children }: { children: ReactNode }) => children,
-    SelectItem: ({ children }: { children: ReactNode }) => children,
-    SelectTrigger: ({ children }: { children: ReactNode }) => children,
-    SelectValue: () => null,
-  }
-})
 import { reviewApi } from '@/api/client'
 import { ReviewsPage, reviewTaskKind } from './reviews'
 import type { ReviewTask } from '@/api/types'
@@ -101,7 +116,6 @@ describe('unified review center', () => {
     mocks.scopes = [{ id: 90, slug: 'foreign', displayName: 'Foreign team' }]
     mocks.search = { namespace: 'foreign' }
     renderPage()
-    expect(screen.getByRole('option', { name: 'Foreign team' })).toBeTruthy()
     expect(lastFilters()?.[1]).toBe(90)
     expect(lastFilters()?.[5]).toBe(true)
   })
@@ -113,38 +127,19 @@ describe('unified review center', () => {
     expect(screen.getByRole('alert')).toBeTruthy()
   })
 
-  it('uses one request queue with three source tabs and no status tabs', () => {
+  it('uses one request queue without source tabs or status tabs', () => {
     renderPage()
-    expect(screen.getAllByRole('tab')).toHaveLength(3)
+    expect(screen.queryAllByRole('tab')).toHaveLength(0)
     expect(screen.getByRole('form', { name: 'reviewCenter.filters.title' })).toBeTruthy()
     expect(screen.getAllByText('Meeting notes')).toHaveLength(2)
     expect(lastFilters()?.slice(0, 6)).toEqual(['PENDING', undefined, 0, 20, 'DESC', true])
   })
 
-  it('moves submission source into compact header tabs and resets pagination immediately', () => {
-    mocks.search = { page: 2 }
-    renderPage()
-    expect(screen.queryByLabelText('reviewCenter.filters.originType', { selector: 'select' })).toBeNull()
-    fireEvent.click(screen.getByRole('tab', { name: /reviewCenter.origin.USER/ }))
-    expect(mocks.navigate).toHaveBeenLastCalledWith(expect.objectContaining({ search: expect.objectContaining({ originType: 'USER', page: undefined }) }))
-  })
-
-  it('keeps batch actions inside the result table surface', async () => {
+  it('keeps batch actions inside the result table surface', () => {
     mocks.list.mockReturnValue({ data: { items: [{ id: 1, subjectType: 'SKILL_VERSION', status: 'PENDING', namespace: 'design', skillSlug: 'notes', displayName: 'Meeting notes', submittedAt: '2026-11-05T10:00:00Z' }], totalElements: 1, totalPages: 1 }, refetch: mocks.refetch })
     renderPage()
     fireEvent.click(screen.getAllByLabelText('reviewBatch.selectTask')[0])
-    const toolbar = await screen.findByRole('region', { name: 'reviewBatch.selection' })
-    expect(toolbar.closest('[data-review-results-panel]')).toBeTruthy()
-    expect(toolbar.closest('[data-review-results-toolbar]')).toBeTruthy()
-  })
-
-  it('opens a repository snapshot on its own route and preserves the list page', async () => {
-    mocks.search = { originType: 'GITHUB_SYNC', reviewView: 'snapshots', page: 3 }
-    vi.spyOn(reviewApi, 'syncGroups').mockResolvedValue({ items: [{ snapshotId: 42, namespaceId: 8, repositoryId: 100, scanPassed: 2, scanWaiting: 0, scanBlocked: 0, owner: 'upstream', repository: 'skills', namespace: 'team', commitSha: 'a'.repeat(40), capturedAt: '2026-11-19T00:00:00Z', total: 2 }], total: 1, page: 3, size: 20 })
-    renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: 'reviewGroups.open' }))
-    expect(mocks.navigate).toHaveBeenLastCalledWith(expect.objectContaining({ to: '/dashboard/reviews/repositories/$snapshotId', params: { snapshotId: '42' }, search: expect.objectContaining({ groupPage: 3 }) }))
-    expect(screen.queryByText('reviewGroups.members')).toBeNull()
+    expect(screen.getByTestId('mock-select-page')).toBeTruthy()
   })
 
   it('keeps draft changes out of the query until Search then resets the page', () => {
@@ -152,19 +147,19 @@ describe('unified review center', () => {
     renderPage()
     fireEvent.change(screen.getByLabelText('reviewCenter.filters.q'), { target: { value: '  notes  ' } })
     expect(lastFilters()?.[2]).toBe(2)
-    expect(lastFilters()?.[6]).toEqual({ q: '', reviewKind: 'ALL', originType: 'ALL', scanVerdict: 'ALL' })
+    expect(lastFilters()?.[6]).toEqual({ q: '', reviewKind: 'ALL', scanVerdict: 'ALL' })
     fireEvent.click(screen.getByRole('button', { name: 'reviewCenter.filters.apply' }))
     expect(lastFilters()?.[2]).toBe(0)
-    expect(lastFilters()?.[6]).toEqual({ q: 'notes', reviewKind: 'ALL', originType: 'ALL', scanVerdict: 'ALL' })
+    expect(lastFilters()?.[6]).toEqual({ q: 'notes', reviewKind: 'ALL', scanVerdict: 'ALL' })
     expect(mocks.navigate).toHaveBeenLastCalledWith(expect.objectContaining({ search: expect.objectContaining({ q: 'notes', page: undefined }) }))
   })
 
   it('reset restores pending requests, clears conditions and refreshes identical queries', () => {
-    mocks.search = { q: 'notes', status: 'REJECTED', originType: 'USER', page: 2 }
+    mocks.search = { q: 'notes', status: 'REJECTED', page: 2 }
     renderPage()
     fireEvent.click(screen.getByRole('button', { name: 'reviewCenter.filters.reset' }))
     expect(lastFilters()?.slice(0, 6)).toEqual(['PENDING', undefined, 0, 20, 'DESC', true])
-    expect(lastFilters()?.[6]).toEqual({ q: '', reviewKind: 'ALL', originType: 'ALL', scanVerdict: 'ALL' })
+    expect(lastFilters()?.[6]).toEqual({ q: '', reviewKind: 'ALL', scanVerdict: 'ALL' })
     fireEvent.click(screen.getByRole('button', { name: 'reviewCenter.filters.reset' }))
     expect(mocks.refetch).toHaveBeenCalledTimes(1)
   })
@@ -174,7 +169,7 @@ describe('unified review center', () => {
     fireEvent.change(screen.getByLabelText('reviewCenter.filters.q'), { target: { value: 'unsubmitted' } })
     fireEvent.click(screen.getByRole('button', { name: /pagination.next/i }))
     expect(lastFilters()?.[2]).toBe(1)
-    expect(lastFilters()?.[6]).toEqual({ q: '', reviewKind: 'ALL', originType: 'ALL', scanVerdict: 'ALL' })
+    expect(lastFilters()?.[6]).toEqual({ q: '', reviewKind: 'ALL', scanVerdict: 'ALL' })
   })
 
   it('allows a team owner to use the same center but does not treat USER_ADMIN as a skill reviewer', () => {

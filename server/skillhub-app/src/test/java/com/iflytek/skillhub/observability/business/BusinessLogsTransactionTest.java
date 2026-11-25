@@ -172,9 +172,9 @@ class BusinessLogsTransactionTest {
     @Test
     void transactionDocumentationStatesSavepointExclusionAndIndependentCommit() throws Exception {
         for (String path : List.of("docs/business-event-logs.md",
-                "openspec/changes/add-otlp-business-event-logs/design.md",
-                "openspec/changes/add-otlp-business-event-logs/specs/business-event-logs/spec.md",
-                "openspec/changes/add-otlp-business-event-logs/acceptance.md")) {
+                "openspec/changes/archive/add-otlp-business-event-logs/design.md",
+                "openspec/changes/archive/add-otlp-business-event-logs/specs/business-event-logs/spec.md",
+                "openspec/changes/archive/add-otlp-business-event-logs/acceptance.md")) {
             assertThat(java.nio.file.Files.readString(java.nio.file.Path.of("../..", path)))
                     .as(path).contains("PROPAGATION_NESTED", "REQUIRES_NEW");
         }

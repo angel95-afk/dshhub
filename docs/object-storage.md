@@ -120,21 +120,6 @@ scripts/storage-compose.sh --storage silo --env-file .env.release \
 
 `make validate-release-config` 校验应用发布配置，不证明存储可用；同样，存储健康不证明发布、审核和下载业务已通过。启动后还需按本次变更的业务验收矩阵验证。
 
-### GitHub 同步
-
-沿用[同步运行手册](github-sync-operations.md)的服务密钥和其他配置，另外设置：
-
-```dotenv
-SKILLHUB_GITHUB_SYNC_ALLOWED_S3_HOSTS=object-storage:9000
-SKILLHUB_GITHUB_SYNC_STAGING_CAPACITY_LIMIT_BYTES=1073741824
-```
-
-允许列表按完整主机及端口匹配，不能只填 `object-storage`。容量按部署预算调整为正数。Worker 必须可达内部 endpoint，不能把宿主机 `localhost` 作为容器上传地址。
-
-```sh
-scripts/storage-compose.sh --storage silo --env-file .env.release \
-  --project-name skillhub -- --profile github-sync up -d
-```
 
 ## 5. Helm / Kubernetes
 

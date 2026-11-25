@@ -22,7 +22,6 @@ import com.iflytek.skillhub.dto.SkillVersionCompareLineResponse;
 import com.iflytek.skillhub.dto.SkillVersionCompareResponse;
 import com.iflytek.skillhub.dto.SkillVersionDetailResponse;
 import com.iflytek.skillhub.dto.SkillVersionResponse;
-import com.iflytek.skillhub.repository.GithubSkillSourceQueryRepository;
 import com.iflytek.skillhub.metrics.SkillHubMetrics;
 import com.iflytek.skillhub.ratelimit.RateLimit;
 import com.iflytek.skillhub.service.SkillLabelAppService;
@@ -68,7 +67,6 @@ public class SkillController extends BaseApiController {
     private final ComplianceSnapshotProjectionService complianceSnapshotProjectionService;
     private final SkillSuiteAppService skillSuiteAppService;
     private final SkillHubMetrics metrics;
-    private final GithubSkillSourceQueryRepository githubSkillSourceQueryRepository;
 
     private final SkillWebUrls skillWebUrls;
 
@@ -79,10 +77,10 @@ public class SkillController extends BaseApiController {
             ComplianceSnapshotProjectionService complianceSnapshotProjectionService,
             SkillSuiteAppService skillSuiteAppService,
             SkillHubMetrics metrics,
-            GithubSkillSourceQueryRepository githubSkillSourceQueryRepository,
+
             ApiResponseFactory responseFactory) {
         this(skillQueryService, skillDownloadService, skillLabelAppService, complianceSnapshotProjectionService,
-                skillSuiteAppService, metrics, githubSkillSourceQueryRepository, responseFactory,
+                skillSuiteAppService, metrics, responseFactory,
                 new SkillWebUrls(""));
     }
 
@@ -94,7 +92,7 @@ public class SkillController extends BaseApiController {
             ComplianceSnapshotProjectionService complianceSnapshotProjectionService,
             SkillSuiteAppService skillSuiteAppService,
             SkillHubMetrics metrics,
-            GithubSkillSourceQueryRepository githubSkillSourceQueryRepository,
+
             ApiResponseFactory responseFactory,
             SkillWebUrls skillWebUrls) {
         super(responseFactory);
@@ -105,7 +103,7 @@ public class SkillController extends BaseApiController {
         this.complianceSnapshotProjectionService = complianceSnapshotProjectionService;
         this.skillSuiteAppService = skillSuiteAppService;
         this.metrics = metrics;
-        this.githubSkillSourceQueryRepository = githubSkillSourceQueryRepository;
+
     }
 
     /**
@@ -164,9 +162,6 @@ public class SkillController extends BaseApiController {
                         : SkillAvatarUrls.current(detail.activeAvatarId(), detail.activeAvatarAudience(),
                                 SkillVisibility.valueOf(detail.visibility()), namespace, detail.slug()),
                 detail.ownerReadOnly(),
-                detail.publishedVersion() == null ? null
-                        : githubSkillSourceQueryRepository.findPublishedVersion(detail.publishedVersion().id())
-                                .orElse(null),
                 skillWebUrls.detail(namespace, detail.slug())
         );
 
@@ -220,7 +215,6 @@ public class SkillController extends BaseApiController {
         PageResponse<SkillVersionResponse> response = PageResponse.from(versions.map(v -> new SkillVersionResponse(
                 v.getId(),
                 v.getVersion(),
-                v.getGithubSyncRevision(),
                 v.getStatus().name(),
                 v.getChangelog(),
                 v.getFileCount(),
@@ -549,7 +543,7 @@ public class SkillController extends BaseApiController {
             return null;
         }
         return new SkillLifecycleVersionResponse(projection.id(), projection.version(), projection.status(),
-                projection.displayName(), projection.summary(), projection.syncRevision());
+                projection.displayName(), projection.summary());
     }
 
     private SkillVersionCompareResponse toCompareResponse(SkillQueryService.SkillVersionCompareDTO compare) {
@@ -599,3 +593,4 @@ public class SkillController extends BaseApiController {
         );
     }
 }
+

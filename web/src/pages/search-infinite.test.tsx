@@ -8,14 +8,14 @@ const state = vi.hoisted(() => ({
   next: vi.fn(), retry: vi.fn(), navigate: vi.fn(), trim: vi.fn(),
 }))
 vi.mock('@/api/client', () => ({ fetchJson: vi.fn(), WEB_API_PREFIX: '/api/web' }))
-vi.mock('@tanstack/react-router', () => ({ useNavigate: () => state.navigate, useSearch: () => ({ q: '', source: 'platform', sort: 'newest', starredOnly: state.starredOnly }) }))
+vi.mock('@tanstack/react-router', () => ({ useNavigate: () => state.navigate, useSearch: () => ({ q: '', sort: 'newest', starredOnly: state.starredOnly }) }))
 vi.mock('@tanstack/react-query', async original => ({ ...await original<typeof import('@tanstack/react-query')>(), useQueryClient: () => ({ setQueryData: state.trim }) }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'zh' } }) }))
 vi.mock('@/features/auth/use-auth', () => ({ useAuth: () => ({ isAuthenticated: true, user: { userId: 'viewer' }, isLoading: false }) }))
 vi.mock('@/shared/hooks/use-label-queries', () => ({ useVisibleLabels: () => ({ data: [] }) }))
 vi.mock('@/shared/hooks/use-user-queries', () => ({ useMyStars: () => ({ data: state.favorites, isLoading: false, isFetching: false }) }))
 vi.mock('@/features/search/use-market-skills', async original => ({ ...await original<typeof import('@/features/search/use-market-skills')>(), useMarketSkills: () => state.query }))
-vi.mock('@/features/search/market-search-controls', () => ({ MarketSearchControls: ({ onSourceChange }: { onSourceChange: (source: string) => void }) => <button onClick={() => onSourceChange('github')}>change source</button> }))
+vi.mock('@/features/search/market-search-controls', () => ({ MarketSearchControls: ({ onSortChange }: { onSortChange: (sort: string) => void }) => <button onClick={() => onSortChange('newest')}>change sort</button> }))
 vi.mock('@/features/skill/skill-card', () => ({ SkillCard: ({ skill }: { skill: { displayName: string } }) => <article>{skill.displayName}</article> }))
 
 let intersect: IntersectionObserverCallback
@@ -70,9 +70,9 @@ describe('market incremental list states', () => {
 
   it('trims a destination cache to one batch and resets paging on filter changes', () => {
     render(<SearchPage />)
-    fireEvent.click(screen.getByRole('button', { name: 'change source' }))
+    fireEvent.click(screen.getByRole('button', { name: 'change sort' }))
     const trim = state.trim.mock.calls[0][1]
     expect(trim({ pages: ['first', 'second'], pageParams: [0, 1] })).toEqual({ pages: ['first'], pageParams: [0] })
-    expect(state.navigate).toHaveBeenCalledWith({ to: '/search', search: { q: '', namespace: '', source: 'github', label: '', sort: 'newest', starredOnly: false, page: 0 } })
+    expect(state.navigate).toHaveBeenCalledWith({ to: '/search', search: { q: '', namespace: '', label: '', sort: 'newest', starredOnly: false, page: 0 } })
   })
 })

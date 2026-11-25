@@ -47,14 +47,6 @@ export function useReviewSkillDetail(taskId: number, enabled = true, includeDocu
   })
 }
 
-export function useGithubSyncReviewSource(taskId: number, enabled = true) {
-  return useQuery({
-    queryKey: ['reviews', taskId, 'sync-source'],
-    queryFn: () => reviewApi.getSyncSource(taskId),
-    enabled: enabled && !!taskId,
-  })
-}
-
 export function useReviewAttempts(taskId: number, enabled = true) {
   return useQuery({
     queryKey: ['reviews', taskId, 'attempts'],

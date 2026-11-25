@@ -74,7 +74,6 @@ class ReviewSkillDetailAppServiceTest {
         Namespace namespace = createNamespace(20L, "team-a");
         Skill skill = createSkill(101L, 20L, "skill-a");
         SkillVersion pending = createVersion(101L, 101L, "1.2.0", SkillVersionStatus.PENDING_REVIEW);
-        setField(pending, "githubSyncRevision", 3);
         pending.setParsedMetadataJson("""
                 {"name":"skill-a","description":"待审摘要","displayNameOverride":"网页新标题","complianceSnapshot":{"schemaVersion":"1.0","items":[{"standard":"mitre-attack","version":"v19.1","controlId":"T1059","evidence":[]}],"digest":"sha256:demo"}}
                 """);
@@ -104,8 +103,6 @@ class ReviewSkillDetailAppServiceTest {
         assertThat(response.skill().displayName()).isEqualTo("网页新标题");
         assertThat(response.skill().summary()).isEqualTo("待审摘要");
         assertThat(response.skill().ownerPreviewVersion().displayName()).isEqualTo("网页新标题");
-        assertThat(response.versions().get(0).syncRevision()).isEqualTo(3);
-        assertThat(response.versions().get(1).syncRevision()).isNull();
 
         assertThat(response.downloadUrl()).isEqualTo("/api/v1/reviews/42/download");
         assertThat(response.documentationPath()).isEqualTo("README.md");
@@ -154,7 +151,6 @@ class ReviewSkillDetailAppServiceTest {
         Namespace namespace = createNamespace(20L, "team-a");
         Skill skill = createSkill(101L, 20L, "skill-a");
         SkillVersion pending = createVersion(101L, 101L, "1.2.0", SkillVersionStatus.PENDING_REVIEW);
-        setField(pending, "githubSyncRevision", 3);
         SkillDownloadService.DownloadResult result = new SkillDownloadService.DownloadResult(
                 () -> new ByteArrayInputStream("zip".getBytes()),
                 "skill-a-1.2.0.zip",
