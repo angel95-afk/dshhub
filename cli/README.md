@@ -372,9 +372,7 @@ Run "skillhub upgrade <coordinate> --check" to review an upgrade; nothing was ch
 | `unknown` | A version is not valid semver, or the registry version could not be resolved (`reason` explains) |
 
 These labels describe version numbers, not a guarantee of compatibility. For example,
-`0.1.0 -> 0.2.0` is `minor`. Registry-generated GitHub hash versions have no SemVer chronology;
-different hash versions are reported as `unknown`, not ordered alphabetically. Use repository
-checks for ordering backed by verified source version IDs.
+`0.1.0 -> 0.2.0` is `minor`. Versions that are not valid SemVer are reported as `unknown`.
 
 Installations at the same or an older registry version are not listed. `localState` reuses the
 local-change inspection of `upgrade`: `clean`, `modified` (files differ from the installed baseline;
@@ -615,7 +613,6 @@ Update mechanism:
 | `skillhub sync pull --namespace <slug> [--skill <slug>]... [options]` | Pull explicitly selected skills from a non-global namespace |
 | `skillhub sync <status\|diff\|push> --namespace <slug> [options]` | Inspect or push a non-global namespace workspace |
 | `skillhub suite <install\|check\|upgrade\|remove> <coordinate> [options]` | Manage a pinned Skill Suite installation |
-| `skillhub repository <install\|check\|upgrade> <repository-id> [options]` | Manage GitHub repository skills on registries that expose a compatible installation plan |
 | `skillhub update [--check] [--json]` | Check or execute CLI self-update |
 
 ### Choosing commands and preserving compatibility
@@ -623,13 +620,10 @@ Update mechanism:
 - `update` updates the CLI executable; `upgrade` updates explicitly selected installed skills.
   `outdated` discovers possible updates in the effective Registry without installing anything;
   `upgrade --check` previews the selected operation. Neither is a CLI self-update.
-- `repository` groups ordinary skills by their Registry repository ID. It does not clone arbitrary
-  GitHub URLs or configure server-side GitHub synchronization. `repository check` and
-  `repository upgrade --check` are compatible entry points to the same read-only plan; both remain supported.
 - `suite` manages a versioned Suite and its member ownership. `suite check` checks the installed
   Suite's availability and member files; `suite upgrade --check` previews a remote Suite version's
-  member changes. They are not interchangeable with repository or individual-skill operations.
-- `sync` manages a non-global namespace authoring workspace, not GitHub ingestion. `status` lists
+  member changes. They are not interchangeable with individual-skill operations.
+- `sync` manages a non-global namespace authoring workspace. `status` lists
   workspace states; `diff` shows changed entries; `pull --check` previews pulling the namespace.
   `publish` uploads one local package, while `sync push` also supports workspace selection and review
   submission. Server policy decides whether an upload is published or requires review.
@@ -771,48 +765,3 @@ CLI upgrade refuses disabled targets even with `--force`. Namespace sync retains
 installations without update/pruning, Suite cannot adopt them, and doctor preserves trusted
 records without claiming loose `.disabled` files. Standard publishing requires `SKILL.md`;
 restore the entry through the compatible manager before publishing a disabled installation.
-
-## GitHub repository batch installation
-
-Open a repository on the registry's **Open-source skills → Repositories** page and expand **Install repository skills**. Copy its stable repository ID from the command:
-
-```bash
-skillhub repository install 123456 --scope project --agent codex --registry https://skillhub.example.com
-# Or select an explicit installation root (cannot combine with --scope/--agent):
-skillhub repository install 123456 --dir ./skills --json
-```
-
-This requires a registry with the repository install-plan endpoint. Public repositories support anonymous reads; a supplied Token must have `skill:read`. Use `skillhub login --registry ...` for restricted content. Registry and credential precedence are the same as individual installation.
-
-SaaS and self-hosted registries can expose different GitHub synchronization features. The CLI does
-not infer repository support from the hostname or from the presence of GitHub-synced skills.
-Only this optional command requires the compatible repository plan. An unavailable endpoint reports
-that repository batch operations are not available; an untyped 404 explains that the feature may not
-be enabled **or** the repository may be unavailable. A successful HTML fallback reports an incompatible
-plan. These errors are nonzero and do not write local state. Authentication, permission, network and
-structured repository-not-found errors keep their original meaning. Ordinary skill commands remain
-independent; use `install <coordinate>` for individually published skills where the Registry allows it.
-
-The CLI resolves all currently accessible, published, download-ready members once (maximum 1000), then pins their exact versions and content fingerprints for that invocation. Members may come from different upstream commits. A newer pending revision does not block an older published version. Hidden, withdrawn, inaccessible or not-yet-published members are not included, and their private details/counts are not disclosed. The Web list is a preview; running the command obtains a fresh plan.
-
-Each member uses normal Skill installation locks, fingerprint checks, ownership protection and inventory. This creates neither a Suite nor a repository installation ledger. Existing directories are never overwritten by this batch command; no batch `--force` is accepted. Successful members remain installed if another fails. The output lists every attempted member, counts installed/skipped/failed, and returns nonzero on partial failure or no usable plan. In `--json` mode stdout is one result object; a nonzero command additionally writes its standard error object to stderr. Excluded private/unpublished members are not counted as successful or as a disclosed skip count.
-
-A complete historical snapshot ZIP is a separate download: every pinned snapshot member must be available. Batch installation does not promise that all members belong to one commit. Use the repository-scoped check and upgrade commands below for existing installations.
-
-If an inventory commit is indeterminate or rollback is incomplete, the batch stops further writes and reports a recovery state with retained target/staging/backup paths and a safe next step. It does not serialize arbitrary error details or credentials.
-
-## Check and upgrade installed repository skills
-
-```bash
-skillhub repository check 123456 --registry https://skillhub.example.com --json
-skillhub repository upgrade 123456 --agent codex --registry https://skillhub.example.com --check
-skillhub repository upgrade 123456 --agent codex --registry https://skillhub.example.com
-```
-
-`check` and `upgrade --check` are read-only. `--agent` and/or `--dir` filter existing targets; `--scope` applies only to installation. New upstream members are not automatically installed. Local files for removed, hidden or unavailable members are not deleted. A per-Skill provenance hint lets the CLI explain that a previously installed member no longer appears in the accessible published plan without guessing why it is hidden. Older metadata without this hint stays readable and can match verified current members.
-
-Checks compare exact versions and content fingerprints, not commit equality. Each invocation fetches the repository plan once and pins all selected releases. Existing source, ownership, local-change, disabled-state, lock and inventory protections remain in effect. No repository batch `--force` is offered. Protected targets remain unchanged while safe targets may upgrade; the overall result is nonzero if anything is protected or fails. A runtime failure preserves completed work and reports subsequent unattempted targets. The CLI does not claim a single transaction across every skill directory.
-
-The Web page offers these commands but cannot inspect installed local files or display an installed drift count. These operations create no Suite, repository installation ledger, server installation telemetry or lockstep commit policy. Existing registry download quotas still apply.
-
-GitHub sync release strings contain content hashes and ingestion IDs rather than sortable upstream SemVer. Repository checks use the validated same-source metadata version ID as the creation-order baseline. Exact matching versions/fingerprints are unchanged; older metadata lacking a reliable ordering ID is protected when a different release must be compared. No hash-lexical fallback or forced migration is used. Disabled targets requiring an update are protected during planning; enabled independent targets can proceed.

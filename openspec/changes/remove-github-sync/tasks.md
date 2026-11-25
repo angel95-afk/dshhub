@@ -114,3 +114,20 @@
 - [x] 6.6 前端手点：主导航无"开源技能"入口，后台侧边栏无"GitHub 同步"项，市场无来源筛选器，技能详情无 GitHub 来源卡
 - [x] 6.7 全局检索确认：`grep -ri "github" --include=*.java --include=*.ts --include=*.tsx` 仅剩 GitHub OAuth 与文档链接
 - [x] 6.8 部署冒烟：`docker compose --env-file .env.release -f compose.release.yml up -d` 后 `/actuator/health` 与登录可用
+
+## 阶段 7 · CLI 清理（后端接口删除后发现 CLI 仍保留 github-sync 能力，需单独清理）
+
+> 背景：`cli/` 在阶段 2–6 未改动，`repository` 命令及 `sourceRepositoryId` 等仍以已删除的
+> `/api/cli/v1/github-repositories/{id}/install-plan` 为载体。按 CLI 规范
+> （`.trellis/spec/cli/index.md`）逐项删除，并在每项完成后勾选本清单，最后运行完整 CLI 工具链检查。
+
+- [x] 7.1 删除 `cli/src/commands/repository.ts`，并从 `cli/src/index.ts` 移除 `repositoryCommand` 的 import 与 `repository <action> <repository-id>` 命令注册
+- [x] 7.2 从 `cli/src/commands/help.ts` 的 `commands` 注册表移除 `repository` 条目（summary/usage/examples）
+- [x] 7.3 删除 `cli/src/services/repository-install-service.ts` 与 `cli/src/services/repository-upgrade-service.ts`，并清理 `cli/src/clients/skillhub-client.ts` 中的 `repositoryInstallPlanSchema`、`RepositoryInstallPlan`、`repositoryInstallPlan()`（含硬编码的 `@github/...` 下载 URL 校验）
+- [x] 7.4 清理 `sourceRepositoryId` 发现提示：`cli/src/services/installed-skill-metadata.ts`、`cli/src/services/install-service.ts`（metadata 写入与继承逻辑）；保留通用安装/升级能力不变
+- [x] 7.5 从 `cli/src/services/skill-version-order.ts` 移除专门识别 `0.0.0-g<hash>-<ingestion>` GitHub 版本的分支；非 SemVer 仍按既有规则返回 `unknown`，通用 semver 分类不变
+- [x] 7.6 删除 github-repositories 专项测试：`cli/test/unit/services/repository-install-service.test.ts`、`cli/test/integration/repository-install-command.test.ts`、`cli/test/integration/repository-upgrade-command.test.ts`、`cli/test/integration/repository-compatibility.test.ts`
+- [x] 7.7 改写含 github 断言的共享 CLI 测试（不整删）：`cli/test/integration/help-command.test.ts`（移除 repository help 用例）、`cli/test/integration/outdated-command.test.ts`（移除 GitHub hash 排序用例）、`cli/test/unit/services/skill-version-order.test.ts`（移除 GitHub hash 分类用例）
+- [x] 7.8 清理 CLI 文档：`cli/README.md`（命令表、命令职责说明、GitHub repository batch installation 与 check/upgrade 章节、outdated 版本说明）；`cli/CHANGELOG.md` **不改写历史条目**，在顶部新增 `0.4.0 — remove GitHub sync support` 版本说明；`cli/package.json` 与生成的 `src/generated/pkg-info.ts` 版本由 0.3.1 升至 0.4.0
+- [x] 7.9 全局检索确认：`cli/` 下不再有 `github-repositories`、`repository` 命令、`sourceRepositoryId`、`githubSync` 等 github-sync 残留（仅保留 GitHub OAuth/Copilot agent profile、Git repository root 与文档链接等通用引用）
+- [x] 7.10 验证：`bun run lint`、`bun run typecheck`、`bun run build` 通过（本机临时安装 Bun 1.4.5 执行，等价于 `make lint-cli`/`typecheck-cli`/`build-cli`）；`bun run test` 890 通过 / 9 跳过 / 17 失败（失败均为环境问题：Windows 无 symlink 权限导致 15 个 symlink 用例 EPERM、`node` 不在 PATH 导致 updater 1 例失败、仓库归档后 `skill-examples.valid.json` 路径迁移导致 1 例 ENOENT；均与本次 CLI 清理无关）。构建产物验证：`--help` 不再列出 repository，`repository` 命令返回未知命令退出码 5。

@@ -2,6 +2,17 @@
 
 All notable CLI behavior changes are documented in this file.
 
+## 0.4.0 — remove GitHub sync support
+
+### Removed
+
+- **BREAKING:** Remove the `skillhub repository <install|check|upgrade> <repository-id>` command and its help topic. The `/api/cli/v1/github-repositories/{id}/install-plan` endpoint that powered it is removed from the registry, so the command can no longer work.
+- Remove the generic version-ordering special case for registry-generated GitHub hash versions (`0.0.0-g<hash>-<ingestion>`); such versions now follow the ordinary non-SemVer `unknown` classification.
+
+### Changed
+
+- Installed-skill metadata no longer records the `sourceRepositoryId` discovery hint. Existing installations with that field remain readable; it is ignored.
+
 ## Unreleased — optional repository compatibility
 
 ### Fixed
