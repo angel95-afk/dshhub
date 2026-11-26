@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DSH 插件市场 · 交互原型 v1.0（对应 PRD v2.17）</title>
+<style>
+  :root{
+    --bg:#F5F6F8;
+    --panel:#FFFFFF;
+    --line:#E5E8EE;
+    --line-soft:#EEF0F4;
+    --text:#14161B;
+    --text-2:#5B6371;
+    --text-3:#8B93A1;
+    --chip:#F2F4F7;
+    --brand:#3F3FE0;
+    --ok:#0B8F62;
+    --ok-bg:#E8F6F0;
+    --warn:#A85B06;
+    --warn-bg:#FDF3E4;
+    --danger:#B42318;
+    --shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px -12px rgba(16,24,40,.14);
+    --mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:14px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  code,pre,.mono{font-family:var(--mono)}
+  a{color:inherit;text-decoration:none}
+
+  /* ---------- page shell ---------- */
+  .page{max-width:1240px;margin:0 auto;padding:40px 24px 96px}
+  .doc-head{border-bottom:1px solid var(--line);padding-bottom:24px;margin-bottom:32px}
+  .doc-head .kicker{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);font-weight:600}
+  .doc-head h1{font-size:30px;line-height:1.25;margin:10px 0 8px;letter-spacing:-.02em}
+  .doc-head p{margin:0;color:var(--text-2);max-width:760px}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .meta{font-size:12px;color:var(--text-2);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+
+  .toc{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 40px}
+  .toc a{font-size:12.5px;padding:6px 12px;border-radius:999px;background:var(--panel);border:1px solid var(--line);color:var(--text-2)}
+  .toc a:hover{border-color:#C9CED8;color:var(--text)}
+
+  /* ---------- screen ---------- */
+  .screen{margin-bottom:56px}
+  .screen-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .screen-head .no{
+    font-family:var(--mono);font-size:12px;font-weight:600;color:var(--brand);
+    background:#EEEEFC;border:1px solid #DDDDFA;border-radius:6px;padding:2px 7px;
+  }
+  .screen-head h2{font-size:18px;margin:0;letter-spacing:-.01em}
+  .screen-head .path{font-family:var(--mono);font-size:12.5px;color:var(--text-3)}
+  .screen-head .desc{flex-basis:100%;margin:0;color:var(--text-2);font-size:13px;max-width:820px}
+
+  /* ---------- browser frame ---------- */
+  /* overflow:hidden 会被当作滚动容器，导致内部 position:sticky 失效；clip 不建立滚动容器，右侧「发布设置」才能真正跟随滚动 */
+  .browser{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;overflow:clip;box-shadow:var(--shadow)}
+  .chrome{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#FAFBFC;border-bottom:1px solid var(--line)}
+  .dots{display:flex;gap:6px}
+  .dots i{width:10px;height:10px;border-radius:50%;background:#E1E4EA;display:block}
+  .urlbar{
+    flex:1;display:flex;align-items:center;gap:8px;
+    background:#fff;border:1px solid var(--line);border-radius:7px;padding:5px 10px;
+    font-family:var(--mono);font-size:11.5px;color:var(--text-2);max-width:520px;
+  }
+  .urlbar .lock{color:#9AA2B1}
+  .viewport{padding:0;background:#fff}
+  .vp-inner{padding:0}
+  .grain{background:
+    radial-gradient(ellipse 60% 50% at 78% 0%, rgba(63,63,224,.055), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 12% 4%, rgba(20,22,27,.035), transparent 70%);
+  }
+
+  /* ---------- app header ---------- */
+  .app-header{display:flex;align-items:center;gap:18px;padding:14px 28px;border-bottom:1px solid var(--line-soft)}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:650;font-size:16px;letter-spacing:-.01em}
+  .brand .mark{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#2B2B3C,#4B4BD6);display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700}
+  .nav{display:flex;align-items:center;gap:4px;margin-left:8px}
+  .nav a{font-size:13px;padding:6px 14px;border-radius:999px;color:var(--text-2);font-weight:500;white-space:nowrap}
+  .nav a.active{background:var(--text);color:#fff}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .icon-btn{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--text-2);border:1px solid transparent;font-size:12px}
+  .avatar{width:28px;height:28px;border-radius:50%;background:#E8E9F2;color:#3B3F52;display:grid;place-items:center;font-size:11.5px;font-weight:600}
+  .header-mini{padding:12px 22px}
+
+  /* ---------- generic ---------- */
+  .btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;font-size:13px;font-weight:550;padding:7px 14px;border:1px solid var(--line);background:#fff;color:var(--text);cursor:pointer;white-space:nowrap}
+  .btn-dark{background:var(--text);color:#fff;border-color:var(--text)}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  .btn-ghost{background:transparent;border-color:transparent;color:var(--text-2)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px}
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--text-2);font-weight:500}
+  .badge-ok{background:var(--ok-bg);color:var(--ok)}
+  .badge-warn{background:var(--warn-bg);color:var(--warn)}
+  .tag-prd{font-family:var(--mono);font-size:10.5px;color:var(--brand);background:#F0F0FD;border:1px solid #E2E2FB;border-radius:4px;padding:0 5px;vertical-align:middle;white-space:nowrap}
+  .muted{color:var(--text-3)}
+  .hr{height:1px;background:var(--line-soft);border:0;margin:0}
+  .code{
+    font-family:var(--mono);font-size:12px;line-height:1.75;
+    background:#F8F9FB;border:1px solid var(--line);border-radius:8px;
+    padding:11px 13px;color:#22262E;overflow-wrap:break-word;position:relative;min-width:0;
+  }
+  .code .u{color:var(--brand)}
+  .code-row{display:flex;gap:8px;align-items:stretch}
+  .code-row .code{flex:1 1 auto;min-width:0}
+  .copy-btn{align-self:stretch;display:inline-flex;align-items:center;gap:5px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:12px;color:var(--text-2);cursor:pointer;font-weight:500;white-space:nowrap;flex:none}
+  .copy-btn.done{border-color:#BFE3D4;background:var(--ok-bg);color:var(--ok)}
+
+  /* ---------- module cards ---------- */
+  .module{border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:#fff}
+  .module + .module{margin-top:14px}
+  .module-head{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+  .module-head h3{margin:0;font-size:14.5px;letter-spacing:-.005em}
+  .module-head .idx{width:20px;height:20px;border-radius:6px;background:var(--text);color:#fff;font-size:11px;display:grid;place-items:center;font-weight:600;flex:none}
+  .module-sub{margin:0 0 14px;color:var(--text-2);font-size:12.5px}
+
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+  .step{background:#FAFBFC;border:1px solid var(--line-soft);border-radius:9px;padding:10px 12px}
+  .step .n{font-family:var(--mono);font-size:10.5px;color:var(--text-3)}
+  .step .t{font-size:12.5px;color:var(--text);margin-top:2px}
+  .hint{display:flex;gap:6px;font-size:12px;color:var(--text-3);margin-top:12px;align-items:flex-start}
+  .hint .warn{color:var(--warn)}
+
+  /* ---------- marketplace toolbar ---------- */
+  .market-head{display:flex;align-items:flex-end;gap:16px;padding:22px 28px 0}
+  .market-head h2{margin:0;font-size:22px;letter-spacing:-.02em}
+  .market-head p{margin:2px 0 0;color:var(--text-2);font-size:13px}
+  .market-head .actions{margin-left:auto;display:flex;gap:8px}
+
+  .toolbar{display:flex;gap:10px;align-items:center;padding:16px 28px 0;flex-wrap:wrap}
+  .search{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:7px 11px;width:280px;color:var(--text-3);font-size:13px;background:#fff}
+  .search .ico{font-size:12px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:12px 28px 0}
+  .chip{font-size:12.5px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--text-2);cursor:pointer;font-weight:500}
+  .chip.active{background:var(--text);border-color:var(--text);color:#fff}
+  .chip .c{opacity:.55;margin-left:4px;font-size:11px}
+  .result-line{display:flex;align-items:center;gap:10px;padding:14px 28px 10px;font-size:12.5px;color:var(--text-3)}
+  .result-line .sort{margin-left:auto;display:flex;gap:6px;align-items:center}
+
+  /* ---------- plugin grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:0 28px}
+  .pcard{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff;position:relative;transition:border-color .15s,box-shadow .15s}
+  .pcard:hover{border-color:#CFD4DE;box-shadow:0 6px 18px -12px rgba(16,24,40,.28)}
+  .pcard-top{display:flex;gap:10px;align-items:flex-start}
+  .picon{width:38px;height:38px;border-radius:10px;flex:none;display:grid;place-items:center;color:#fff;font-weight:700;font-size:14px;letter-spacing:-.02em}
+  .pcard h4{margin:0;font-size:13.5px;line-height:1.35;letter-spacing:-.005em}
+  .pname{font-family:var(--mono);font-size:11px;color:var(--text-3);margin-top:1px;overflow-wrap:anywhere}
+  .pdesc{margin:10px 0 0;font-size:12.5px;color:var(--text-2);line-height:1.55;height:39px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .pfoot{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:11.5px;color:var(--text-3)}
+  .pfoot .count{margin-left:auto;display:flex;align-items:center;gap:4px}
+  .ver{font-family:var(--mono);font-size:11px;color:var(--text-2);background:#F6F7F9;border:1px solid var(--line-soft);border-radius:5px;padding:0 5px}
+  .more{display:flex;justify-content:center;padding:20px 28px 26px}
+
+  /* ---------- detail ---------- */
+  .detail-wrap{padding:22px 28px 26px}
+  .crumbs{font-size:12px;color:var(--text-3);margin-bottom:14px}
+  .dhead{display:flex;gap:14px;align-items:flex-start}
+  .dhead .picon{width:52px;height:52px;border-radius:13px;font-size:18px}
+  .dhead h2{margin:0;font-size:21px;letter-spacing:-.02em}
+  .dhead .sub{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;font-size:12.5px;color:var(--text-2)}
+  .cols{display:grid;grid-template-columns:1fr 340px;gap:22px;margin-top:22px;align-items:start}
+  .readme{border:1px solid var(--line);border-radius:12px;padding:20px 22px;background:#fff;min-height:420px}
+  .readme h3{margin:0 0 12px;font-size:15px}
+  .readme h4{margin:18px 0 8px;font-size:13.5px}
+  .readme p{margin:0 0 10px;font-size:13px;color:var(--text-2)}
+  .readme ul{margin:0 0 10px;padding-left:20px;font-size:13px;color:var(--text-2)}
+  .readme li{margin-bottom:4px}
+  .readme pre{background:#F8F9FB;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:11.5px;overflow:auto;color:#22262E}
+  .install{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;position:sticky;top:16px}
+  .install .ih{padding:13px 16px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+  .install .ib{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+  .kv{display:flex;flex-direction:column;gap:5px;font-size:12px}
+  .kv .k{color:var(--text-3);font-size:11.5px}
+  .kv .v{color:var(--text-2);overflow-wrap:anywhere}
+  .kv .v .mono{font-size:11.5px;color:var(--text)}
+  .disclose{border-top:1px solid var(--line-soft);padding:11px 16px;font-size:12px;color:var(--text-3);display:flex;justify-content:space-between}
+  .vlist{border:1px solid var(--line);border-radius:12px;margin-top:16px;background:#fff;overflow:hidden}
+  .vlist .vh{padding:11px 16px;border-bottom:1px solid var(--line-soft);font-size:12.5px;font-weight:600}
+  .vrow{display:grid;grid-template-columns:88px 130px 1fr 150px;gap:10px;padding:10px 16px;font-size:12px;border-bottom:1px solid var(--line-soft);align-items:center;color:var(--text-2)}
+  .vrow:last-child{border-bottom:0}
+  .vrow .vn{font-family:var(--mono);color:var(--text);font-weight:600}
+
+  /* ---------- form ---------- */
+  .form-wrap{display:grid;grid-template-columns:1fr 320px;gap:24px;padding:22px 28px 30px;align-items:start}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:12.5px;font-weight:600;margin-bottom:6px}
+  .field .req{color:var(--danger);margin-left:2px}
+  .field .help{font-size:11.5px;color:var(--text-3);margin-top:5px}
+  .input,.sel{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13px;background:#fff;color:var(--text)}
+  .input::placeholder{color:#AEB5C0}
+  .tabs{display:flex;gap:4px;background:#F4F5F8;border:1px solid var(--line);border-radius:10px;padding:4px;margin-bottom:18px}
+  .tabs button{flex:1;border:0;background:transparent;padding:7px 8px;border-radius:7px;font-size:12.5px;color:var(--text-2);cursor:pointer;font-weight:550;font-family:inherit}
+  .tabs button.on{background:#fff;color:var(--text);box-shadow:0 1px 2px rgba(16,24,40,.08)}
+  .drop{border:1.5px dashed #D5DAE3;border-radius:10px;padding:22px;text-align:center;background:#FAFBFC;color:var(--text-3);font-size:12.5px}
+  .drop .big{font-size:13px;color:var(--text-2);margin-bottom:3px}
+  .auto{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .auto .ah{background:#FAFBFC;border-bottom:1px solid var(--line-soft);padding:9px 14px;font-size:12px;display:flex;align-items:center;gap:8px;color:var(--text-2)}
+  .auto .ab{padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+  .ro{font-size:12px}
+  .ro .k{color:var(--text-3);font-size:11px}
+  .ro .v{color:var(--text);font-family:var(--mono);font-size:11.5px;margin-top:1px;overflow-wrap:anywhere}
+  .check{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 16px}
+  .check h4{margin:0 0 10px;font-size:12.5px}
+  .check li{list-style:none;display:flex;gap:8px;font-size:12px;color:var(--text-2);margin-bottom:8px;align-items:flex-start}
+  .check ul{margin:0 0 14px;padding:0}
+  .tick{width:15px;height:15px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:9px;color:#fff;margin-top:2px}
+  .tick.ok{background:var(--ok)}
+  .tick.warn{background:#E0A33E}
+  .tick.idle{background:#DDE1E8}
+
+  /* ---------- publish settings (right rail, mirrors publish.tsx aside) ---------- */
+  .settings{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 16px;position:sticky;top:16px}
+  .settings h4{margin:0 0 14px;font-size:12.5px}
+  .settings .field{margin-bottom:18px}
+  .settings .field:last-child{margin-bottom:0}
+  .settings .help{line-height:1.6}
+  .settings select.sel{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:28px;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+  .settings .help.warn{color:#B45309;background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:7px 9px;margin-top:6px}
+
+  /* ---------- table (my plugins) ---------- */
+  .table{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+  .tr{display:grid;grid-template-columns:1.6fr 88px 104px 168px 96px 136px;gap:12px;padding:12px 18px;align-items:center;font-size:12.5px;border-bottom:1px solid var(--line-soft)}
+  .idxcell{min-width:0;font-size:11.5px;color:var(--text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .idxcell.ok{color:var(--ok);font-weight:600}
+  .tr:last-child{border-bottom:0}
+  .tr.th{background:#FAFBFC;font-size:11.5px;color:var(--text-3);font-weight:600}
+  .tr .nm{display:flex;gap:10px;align-items:center}
+  .tr .picon{width:30px;height:30px;border-radius:8px;font-size:11px}
+
+  /* ---------- namespace management ---------- */
+  .ns-wrap{padding:18px 28px 30px}
+  .back{font-size:12.5px;color:var(--text-2);margin-bottom:12px}
+  .ns-head{display:flex;gap:12px;align-items:center}
+  .ns-head .picon{width:44px;height:44px;border-radius:12px;font-size:15px}
+  .ns-head h2{margin:0;font-size:19px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+  .ns-head p{margin:2px 0 0;font-size:12.5px;color:var(--text-2)}
+  .nstabs{display:flex;gap:2px;margin:16px -28px 0;padding:0 28px;border-bottom:1px solid var(--line)}
+  .nstabs a{font-size:13px;padding:9px 14px;color:var(--text-2);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .nstabs a.on{color:var(--brand);border-bottom-color:var(--brand)}
+  .tr-ns{grid-template-columns:1.4fr 76px 96px 104px 84px 170px}
+  .tr-ns .ops{display:flex;gap:6px;flex-wrap:wrap}
+
+  /* ---------- notes ---------- */
+  .notes{list-style:none;padding:0;margin:14px 0 0;display:grid;grid-template-columns:repeat(2,1fr);gap:8px 20px}
+  .notes li{font-size:12.5px;color:var(--text-2);display:block;position:relative;padding-left:28px}
+  .notes li b{position:absolute;left:0;top:1px;font-family:var(--mono);font-size:11px;color:var(--brand);background:#F0F0FD;border-radius:4px;padding:1px 5px}
+
+  /* ---------- nav compare ---------- */
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--line)}
+  .compare > div{padding:0}
+  .compare > div + div{border-left:1px solid var(--line)}
+  .compare .label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);padding:10px 16px 0;font-weight:600}
+  .compare .app-header{border-bottom:0;padding:10px 16px 16px;flex-wrap:wrap;gap:10px}
+  .compare .brand{font-size:14px}
+  .compare .nav a{font-size:12px;padding:4px 10px}
+  .strike{text-decoration:line-through;color:#B9BEC8}
+
+  @media (max-width:1000px){
+    .grid{grid-template-columns:repeat(2,1fr)}
+    .cols,.form-wrap{grid-template-columns:1fr}
+    .install,.settings{position:static}
+    .notes{grid-template-columns:1fr}
+    .compare{grid-template-columns:1fr}
+    .compare > div + div{border-left:0;border-top:1px solid var(--line)}
+    .steps{grid-template-columns:1fr}
+    .tr{grid-template-columns:1.4fr 1fr 1fr}
+    .tr > :nth-child(4),.tr > :nth-child(5){display:none}
+    #s06 .tr{grid-template-columns:1.6fr 96px 152px 150px}
+    #s06 .tr > :nth-child(2),#s06 .tr > :nth-child(5){display:none}
+    #s06 .tr > :nth-child(4){display:block}
+    #s06 .tr > :nth-child(6){white-space:nowrap}
+    .tr-ns{grid-template-columns:1.4fr 64px 90px 150px}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="doc-head">
+    <div class="kicker">Prototype · 高保真交互原型</div>
+    <h1>DSH 插件市场 v1.0</h1>
+    <p>对应 PRD：<code>docs/prds/plugin-market-v1.0-prd.md</code>。本文件只表达界面结构与交互，不含实现细节；标注编号指向 PRD 章节。</p>
+    <div class="meta-row">
+      <span class="meta">8 个屏幕</span>
+      <span class="meta">light theme</span>
+      <span class="meta">对应 PRD v2.17（443 行）</span>
+      <span class="meta">2026-11-26</span>
+      <span class="meta">示例域名 skillhub.example.com</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <a href="#s01">S01 导航改造</a>
+    <a href="#s02">S02 技能市场 · 发布按钮</a>
+    <a href="#s03">S03 插件市场 · 两模块</a>
+    <a href="#s04">S04 插件详情</a>
+    <a href="#s05">S05 提交插件</a>
+    <a href="#s06">S06 我的插件</a>
+    <a href="#s07">S07 命名空间 · 插件</a>
+    <a href="#s08">S08 审核队列 · 插件审批</a>
+  </nav>
+
+  <!-- ============ S01 ============ -->
+  <section class="screen" id="s01">
+    <div class="screen-head">
+      <span class="no">S01</span>
+      <h2>顶部导航改造</h2>
+      <span class="path">PRD §3.1</span>
+      <p class="desc">移除「发布」，新增「插件市场」。技能市场、技能套件、控制台顺序不变；路由与页脚入口不动。</p>
+    </div>
+
+    <div class="browser">
+      <div class="chrome">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="urlbar"><span class="lock">▣</span> localhost:3000/plugins</div>
+      </div>
+      <div class="compare">
+        <div>
+          <div class="label">改造前</div>
+          <div class="app-header">
+            <div class="brand"><span class="mark">S</span>SkillHub</div>
+            <nav class="nav">
+              <a>首页</a>
+              <a class="strike">发布</a>
+              <a>技能市场</a>
+              <a>技能套件</a>
+              <a>控制台</a>
+            </nav>
+          </div>
+        </div>
+        <div>
+          <div class="label">改造后</div>
+          <div class="app-header">
+            <div class="brand"><span class="mark">S</span>SkillHub</div>
+            <nav class="nav">
+              <a>首页</a>
+              <a class="active">插件市场</a>
+              <a>技能市场</a>
+              <a>技能套件</a>
+              <a>控制台</a>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ol class="notes">
+      <li><b>01</b> 导航项顺序：首页 → 插件市场 → 技能市场 → 技能套件 → 控制台</li>
+      <li><b>02</b> 「发布」不删除能力，只移到技能市场页头（见 S02）</li>
+      <li><b>03</b> <code>/dashboard/publish</code> 及其 5 个 query 参数不变，避免打断深链</li>
+      <li><b>04</b> 页脚「产品」栏的发布链接保留，作为次级入口</li>
+    </ol>
+  </section>
+
+  <!-- ============ S02 ============ -->
+  <section class="screen" id="s02">
+    <div class="screen-head">
+      <span class="no">S02</span>
+      <h2>技能市场页头 · 发布技能</h2>
+      <span class="path">/search · PRD §3.1</span>
+      <p class="desc">发布入口从全局导航下沉到市场页头，登录后可见；未登录不渲染该按钮。</p>
+    </div>
+
+    <div class="browser">
+      <div class="chrome">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="urlbar"><span class="lock">▣</span> localhost:3000/search</div>
+      </div>
+      <div class="vp-inner grain">
+        <div class="app-header">
+          <div class="brand"><span class="mark">S</span>SkillHub</div>
+          <nav class="nav">
+            <a>首页</a><a>插件市场</a><a class="active">技能市场</a><a>技能套件</a><a>控制台</a>
+          </nav>
+          <div class="header-right">
+            <span class="icon-btn">◐</span><span class="icon-btn">文</span><span class="avatar">王</span>
+          </div>
+        </div>
+
+        <div class="market-head">
+          <div>
+            <h2>技能市场</h2>
+            <p>浏览组织内已发布的 SKILL.md 技能包</p>
+          </div>
+          <div class="actions">
+            <button class="btn">我的技能</button>
+            <button class="btn btn-dark">＋ 发布技能</button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search"><span class="ico">⌕</span>搜索技能名称、描述、关键词…</div>
+          <button class="btn btn-sm">全部空间 ▾</button>
+          <button class="btn btn-sm">排序：最新 ▾</button>
+        </div>
+        <div class="chips">
+          <span class="chip active">全部</span><span class="chip">文档处理</span><span class="chip">数据分析</span><span class="chip">研发提效</span><span class="chip">内容创作</span>
+        </div>
+        <div class="result-line"><span>共 128 个技能</span></div>
+        <div class="grid" style="padding-bottom:26px">
+          <div class="pcard">
+            <div class="pcard-top">
+              <div class="picon" style="background:linear-gradient(135deg,#4C6FFF,#7B5CFF)">P</div>
+              <div><h4>PDF 智能解析</h4><div class="pname">team / pdf-parser</div></div>
+            </div>
+            <p class="pdesc">提取 PDF 正文、表格与图表，输出结构化 Markdown，支持扫描件 OCR。</p>
+            <div class="pfoot"><span class="badge">文档处理</span><span class="ver">v2.3.1</span><span class="count">↓ 12,480</span></div>
+          </div>
+          <div class="pcard">
+            <div class="pcard-top">
+              <div class="picon" style="background:linear-gradient(135deg,#0EA47A,#3CCB9B)">E</div>
+              <div><h4>Excel 报表生成</h4><div class="pname">team / excel-report</div></div>
+            </div>
+            <p class="pdesc">按模板批量生成带公式与图表的 Excel 报表，支持多 Sheet 与数据校验。</p>
+            <div class="pfoot"><span class="badge">数据分析</span><span class="ver">v1.8.0</span><span class="count">↓ 8,902</span></div>
+          </div>
+          <div class="pcard">
+            <div class="pcard-top">
+              <div class="picon" style="background:linear-gradient(135deg,#E2703A,#F0A05C)">R</div>
+              <div><h4>需求评审助手</h4><div class="pname">pm / requirement-review</div></div>
+            </div>
+            <p class="pdesc">对 PRD 做完整性、可测试性与边界条件检查，输出问题清单。</p>
+            <div class="pfoot"><span class="badge">研发提效</span><span class="ver">v0.9.4</span><span class="count">↓ 3,110</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ol class="notes">
+      <li><b>01</b> 主按钮文案「发布技能」，与「提交插件」区分，避免两个"发布"混淆</li>
+      <li><b>02</b> 点击跳转 <code>/dashboard/publish</code>，不带 query，沿用现有默认逻辑</li>
+      <li><b>03</b> 埋点沿用 <code>skill.publish.open</code>，与页脚链接同一事件类别</li>
+      <li><b>04</b> 未登录时按钮不渲染（现有导航的 <code>auth</code> 语义一致）</li>
+      <li><b>05</b> 页头按钮组与插件市场同构：次级「我的技能」+ 主按钮「发布技能」↔「我的插件」+「提交插件」</li>
+    </ol>
+  </section>
+
+  <!-- ============ S03 ============ -->
+  <section class="screen" id="s03">
+    <div class="screen-head">
+      <span class="no">S03</span>
+      <h2>插件市场 · 两模块</h2>
+      <span class="path">/plugins · PRD §4</span>
+      <p class="desc">自上而下：索引源 → 插件列表。安装提示词只在详情页出现（每个插件一条，带包名与版本），市场页不再重复一遍。</p>
+    </div>
+
+    <div class="browser">
+      <div class="chrome">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="urlbar"><span class="lock">▣</span> localhost:3000/plugins</div>
+      </div>
+      <div class="vp-inner grain">
+        <div class="app-header">
+          <div class="brand"><span class="mark">S</span>SkillHub</div>
+          <nav class="nav">
+            <a>首页</a><a class="active">插件市场</a><a>技能市场</a><a>技能套件</a><a>控制台</a>
+          </nav>
+          <div class="header-right"><span class="icon-btn">◐</span><span class="icon-btn">文</span><span class="avatar">王</span></div>
+        </div>
+
+        <div class="market-head">
+          <div>
+            <h2>DSH 插件市场</h2>
+            <p>把索引源加入 DSH，即可在「发现」页浏览安装；装单个插件时，到它的详情页复制提示词。</p>
+          </div>
+          <div class="actions">
+            <button class="btn">我的插件</button>
+            <button class="btn btn-dark">＋ 提交插件</button>
+          </div>
+        </div>
+
+        <div style="padding:18px 28px 0">
+          <!-- module 1 -->
+          <div class="module">
+            <div class="module-head">
+              <span class="idx">1</span>
+              <h3>索引源</h3>
+              <span class="badge">加入 DSH · 自定义插件索引</span>
+              <span class="tag-prd">PRD §4.1</span>
+            </div>
+            <p class="module-sub">这是一份符合 DSH 插件市场协议（format 1）的索引文件。把它添加为索引源，DSH 就能读到本站目录。</p>
+            <div class="code-row">
+              <div class="code"><span class="u">https://skillhub.example.com</span>/dsh/index.json</div>
+              <button class="copy-btn js-copy">⧉ 复制地址</button>
+            </div>
+            <div class="steps">
+              <div class="step"><div class="n">STEP 1</div><div class="t">DSH → 插件 → 实验性插件，启用「自定义插件索引」</div></div>
+              <div class="step"><div class="n">STEP 2</div><div class="t">切到「发现」，点击「添加索引源」</div></div>
+              <div class="step"><div class="n">STEP 3</div><div class="t">粘贴上面的地址并保存，即可浏览安装</div></div>
+            </div>
+            <div class="hint"><span class="warn">⚠</span><span>索引源属于当前 profile。生产环境请使用 <code>https:</code>——<code>http:</code> 索引可被网络路径上的他人篡改，包括其中列出的安装来源。</span></div>
+          </div>
+
+          <!-- module 2 -->
+          <div class="module">
+            <div class="module-head">
+              <span class="idx">2</span>
+              <h3>插件市场展示内容</h3>
+              <span class="tag-prd">PRD §4.2</span>
+            </div>
+            <p class="module-sub">只列出已上架、且所属空间公开的插件；点卡片进详情，再复制那一条安装提示词。</p>
+            <div style="display:flex;gap:8px;align-items:center;margin:2px 0 12px">
+              <div class="search" style="width:300px"><span class="ico">⌕</span>搜索插件名称、包名、描述…</div>
+              <button class="btn btn-sm" style="margin-left:auto">排序：最新 ▾</button>
+              <button class="btn btn-sm">名称 A→Z</button>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+              <span class="chip active">全部 <span class="c">36</span></span>
+              <span class="chip">智能体 <span class="c">9</span></span>
+              <span class="chip">界面 <span class="c">7</span></span>
+              <span class="chip">记忆 <span class="c">4</span></span>
+              <span class="chip">通信 <span class="c">3</span></span>
+              <span class="chip">开发工具 <span class="c">6</span></span>
+              <span class="chip">搜索与知识 <span class="c">2</span></span>
+              <span class="chip">数据分析 <span class="c">2</span></span>
+              <span class="chip">安全 <span class="c">1</span></span>
+              <span class="chip">其他 <span class="c">2</span></span>
+            </div>
+            <div style="font-size:12px;color:var(--text-3);margin:8px 0 12px">共 36 个插件 · 按上架时间倒序</div>
+
+            <div class="grid" style="padding:0">
+              <div class="pcard">
+                <div class="pcard-top">
+                  <div class="picon" style="background:linear-gradient(135deg,#3B5BFF,#6E8BFF)">O</div>
+                  <div><h4>Ops 工具集</h4><div class="pname">dsh-ops</div></div>
+                </div>
+                <p class="pdesc">DSH 底层操作工具，降低 Token 消耗与任务耗时。</p>
+                <div class="pfoot"><span class="badge">开发工具</span><span class="ver">1.4.0</span><span class="count">⧉ 128</span></div>
+              </div>
+              <div class="pcard">
+                <div class="pcard-top">
+                  <div class="picon" style="background:linear-gradient(135deg,#7A4DFF,#B07BFF)">S</div>
+                  <div><h4>Better Sidebar</h4><div class="pname">@team/DSH-better-sidebar</div></div>
+                </div>
+                <p class="pdesc">开放侧边栏底座，支持三方注册新页面，内置文件、终端、Git。</p>
+                <div class="pfoot"><span class="badge">界面</span><span class="ver">2.1.0</span><span class="count">⧉ 96</span></div>
+              </div>
+              <div class="pcard">
+                <div class="pcard-top">
+                  <div class="picon" style="background:linear-gradient(135deg,#0FA37F,#45CFA6)">C</div>
+                  <div><h4>上下文洞察</h4><div class="pname">dsh-context</div></div>
+                </div>
+                <p class="pdesc">透视上下文组成与演进，追踪多 Agent 协作与通信。</p>
+                <div class="pfoot"><span class="badge">记忆</span><span class="ver">0.9.2</span><span class="count">⧉ 74</span></div>
+              </div>
+              <div class="pcard">
+                <div class="pcard-top">
+                  <div class="picon" style="background:linear-gradient(135deg,#E2703A,#F2A463)">I</div>
+                  <div><h4>IM 接入</h4><div class="pname">dsh-im</div></div>
+                </div>
+                <p class="pdesc">把 IM 机器人接入 DSH，支持飞书、企业微信、钉钉。</p>
+                <div class="pfoot"><span class="badge">通信</span><span class="ver">1.0.3</span><span class="count">⧉ 61</span></div>
+              </div>
+              <div class="pcard">
+                <div class="pcard-top">
+                  <div class="picon" style="background:linear-gradient(135deg,#1E8FE0,#55B8F0)">Q</div>
+                  <div><h4>Web 搜索</h4><div class="pname">@team/dsh-web-search</div></div>
+                </div>
+                <p class="pdesc">为纯文本模型补上联网检索能力，返回带出处的摘要。</p>
+                <div class="pfoot"><span class="badge">搜索与知识</span><span class="ver">0.6.1</span><span class="count">⧉ 43</span></div>
+              </div>
+              <div class="pcard">
+                <div class="pcard-top">
+                  <div class="picon" style="background:linear-gradient(135deg,#4B4B57,#7C7C8C)">G</div>
+                  <div><h4>Git 图谱</h4><div class="pname">dsh-git-graph</div></div>
+                </div>
+                <p class="pdesc">在侧栏渲染仓库提交图谱与分支关系，支持快捷检出。</p>
+                <div class="pfoot"><span class="badge">开发工具</span><span class="ver">0.3.7</span><span class="count">⧉ 22</span></div>
+              </div>
+            </div>
+
+            <div class="more" style="padding:16px 0 4px"><button class="btn">加载更多</button></div>
+          </div>
+        </div>
+        <div style="height:26px"></div>
+      </div>
+    </div>
+
+    <ol class="notes">
+      <li><b>01</b> 模块一必须显示完整绝对地址，子路径部署时不得丢 base path</li>
+      <li><b>02</b> 市场页只有两个模块；提示词按插件生成，只放在详情页（见 S04）</li>
+      <li><b>03</b> 9 个分类对齐 dsh-hub；分类 id 用 ASCII，界面走 i18n</li>
+      <li><b>04</b> 卡片计数是「复制提示词次数」，刻意不叫"安装量"</li>
+      <li><b>05</b> 索引为空时，模块二显示空态但模块一仍可用</li>
+      <li><b>06</b> 「我的插件」「提交插件」并列，与技能市场的「我的技能」「发布技能」同构；未登录均不渲染</li>
+      <li><b>07</b> 卡片上不放复制按钮——提示词要带包名与版本，只能在详情页生成</li>
+    </ol>
+  </section>
+
+  <!-- ============ S04 ============ -->
+  <section class="screen" id="s04">
+    <div class="screen-head">
+      <span class="no">S04</span>
+      <h2>插件详情</h2>
+      <span class="path">/plugins/{namespace}/{slug} · PRD §5</span>
+      <p class="desc">右栏是安装区：只读显示「当前最新版本」→ 复制提示词 → 展开等价命令；页面<strong>不提供任何选版本控件</strong>（无下拉 / 单选 / 输入框），安装永远取最新已上架版本。左栏 README 为提交时快照。</p>
+    </div>
+
+    <div class="browser">
+      <div class="chrome">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="urlbar"><span class="lock">▣</span> localhost:3000/plugins/team/dsh-ops</div>
+      </div>
+      <div class="vp-inner grain">
+        <div class="app-header">
+          <div class="brand"><span class="mark">S</span>SkillHub</div>
+          <nav class="nav"><a>首页</a><a class="active">插件市场</a><a>技能市场</a><a>技能套件</a><a>控制台</a></nav>
+          <div class="header-right"><span class="icon-btn">◐</span><span class="icon-btn">文</span><span class="avatar">王</span></div>
+        </div>
+
+        <div class="detail-wrap">
+          <div class="crumbs">插件市场 / <span class="muted">team</span> / dsh-ops</div>
+
+          <div class="dhead">
+            <div class="picon" style="background:linear-gradient(135deg,#3B5BFF,#6E8BFF)">O</div>
+            <div style="flex:1">
+              <h2>Ops 工具集</h2>
+              <div class="sub">
+                <span class="mono" style="font-size:12px;background:#F6F7F9;border:1px solid var(--line-soft);border-radius:5px;padding:1px 6px">dsh-ops</span>
+                <button class="btn btn-sm btn-ghost">⧉ 复制包名</button>
+                <span class="badge">开发工具</span>
+                <span class="muted">·</span><span>team</span>
+                <span class="muted">·</span><span>更新于 2026-11-18</span>
+                <span class="muted">·</span><span>⧉ 复制提示词 128 次</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cols">
+            <div>
+              <div class="readme">
+                <h3>Ops 工具集</h3>
+                <p>给 DSH 补一组底层操作工具：批量读文件、按行号切片、结构化 diff。目标是减少往返轮次，从而降低 Token 消耗与任务耗时。</p>
+                <h4>包含能力</h4>
+                <ul>
+                  <li><code>ops.read_range</code> 按行号范围读取大文件片段</li>
+                  <li><code>ops.diff</code> 输出结构化 diff，而不是整文件重写</li>
+                  <li><code>ops.batch</code> 一次调用完成多文件读取</li>
+                </ul>
+                <h4>安装后验证</h4>
+                <pre>dsh plugin --profile work list
+# 应看到 dsh-ops 1.4.0</pre>
+                <p class="muted" style="font-size:12px">README 为提交时快照，与 <code>dsh-ops@1.4.0</code> 的包内容对应。</p>
+              </div>
+
+              <div class="vlist">
+                <div class="vh">版本历史 <span class="muted" style="font-weight:400;font-size:11.5px">· 只读，用于回溯；不提供逐版本复制或安装入口</span></div>
+                <div class="vrow"><span class="vn">1.4.0</span><span>2026-11-18</span><span>npm · npm.internal.example.com</span><span><span class="badge badge-ok">最新</span> <span class="muted mono" style="font-size:11px">dsh ≥ 0.2.2</span></span></div>
+                <div class="vrow"><span class="vn">1.3.2</span><span>2026-10-29</span><span>npm · npm.internal.example.com</span><span class="muted">dsh ≥ 0.2.0</span></div>
+                <div class="vrow"><span class="vn">1.2.0</span><span>2026-09-30</span><span>git · git.internal/team/plugins</span><span class="muted">dsh ≥ 0.1.8</span></div>
+              </div>
+            </div>
+
+            <aside class="install">
+              <div class="ih">安装这个插件</div>
+              <div class="ib">
+                <div class="kv">
+                  <span class="k">当前最新版本</span>
+                  <span class="v"><span class="mono" style="font-weight:600">1.4.0</span> <span class="muted">· 安装永远取最新已上架版本，不可选</span></span>
+                </div>
+
+                <div>
+                  <div class="kv" style="margin-bottom:6px"><span class="k">安装提示词</span></div>
+                  <div class="code" style="font-size:11.5px">请按照 <span class="u">https://skillhub.example.com/dsh/install/team/dsh-ops/1.4.0.md</span> 安装 DSH 插件 dsh-ops@1.4.0。</div>
+                  <button class="btn btn-dark js-copy" style="width:100%;justify-content:center;margin-top:8px">⧉ 复制提示词</button>
+                </div>
+
+                <div class="kv">
+                  <span class="k">等价命令</span>
+                  <span class="v"><span class="mono">dsh plugin --profile &lt;profile&gt; add dsh-ops@1.4.0 --ignore-scripts</span></span>
+                </div>
+
+                <hr class="hr" />
+
+                <div class="kv"><span class="k">分发来源</span><span class="v"><span class="badge">npm</span> <span class="mono">npm.internal.example.com</span></span></div>
+                <div class="kv"><span class="k">兼容性</span><span class="v"><span class="mono">engines.dsh ≥ 0.2.2</span></span></div>
+                <div class="kv"><span class="k">源码仓库</span><span class="v"><span class="mono">git.internal/team/plugins</span>（插件在仓库根目录）</span></div>
+                <div class="kv"><span class="k">包大小</span><span class="v">412 KB · sha512 3f9c…a3b4</span></div>
+              </div>
+              <div class="disclose"><span>装前请核对来源与版本</span><span>举报 ↗</span></div>
+            </aside>
+          </div>
+        </div>
+        <div style="height:24px"></div>
+      </div>
+    </div>
+
+    <ol class="notes">
+      <li><b>01</b> 提示词里用 npm 包名而不是 <code>namespace/slug</code>，避免 Agent 猜错包名</li>
+      <li><b>02</b> 命令区默认折叠，展示时必须带 <code>--ignore-scripts</code></li>
+      <li><b>03</b> <code>engines.dsh</code> 缺省时显示"未声明，装前请自行确认"，不伪造兼容性</li>
+      <li><b>04</b> README 与该版本绑定；页面不提供切换版本，正文与安装永远对应当前最新版本（PRD §5.1）</li>
+      <li><b>05</b> npm 来源无版本输入框：版本由服务端取最新非预发布版本并提交时冻结，任何途径传入版本都不受理（PRD §6.3）</li>
+      <li><b>06</b> 提示词里的版本段由服务端在<strong>复制那一刻</strong>取最新已上架版本，前端不拼、不替换；版本列表只用于回溯，不提供逐版本安装（PRD §5.1 / §5.2）</li>
+    </ol>
+  </section>
+
+  <!-- ============ S05 ============ -->
+  <section class="screen" id="s05">
+    <div class="screen-head">
+      <span class="no">S05</span>
+      <h2>提交插件</h2>
+      <span class="path">/dashboard/plugins/submit · PRD §6</span>
+      <p class="desc">四种来源收敛成两条分发路径；表单以自动解析为主，人工只选四样（命名空间、可见范围、来源、分类）。右栏为常驻「发布设置」区，与技能发布页同构；校验清单就近放在表单末尾。</p>
+    </div>
+
+    <div class="browser">
+      <div class="chrome">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="urlbar"><span class="lock">▣</span> localhost:3000/dashboard/plugins/submit</div>
+      </div>
+      <div class="vp-inner grain">
+        <div class="app-header">
+          <div class="brand"><span class="mark">S</span>SkillHub</div>
+          <nav class="nav"><a>首页</a><a>插件市场</a><a>技能市场</a><a>技能套件</a><a class="active">控制台</a></nav>
+          <div class="header-right"><span class="icon-btn">◐</span><span class="icon-btn">文</span><span class="avatar">王</span></div>
+        </div>
+
+        <div class="market-head">
+          <div>
+            <h2>提交插件</h2>
+            <p>选择来源后，名称、版本、兼容范围与 README 会从包内 <code>package.json</code> 自动解析。</p>
+          </div>
+          <div class="actions"><button class="btn">保存草稿</button></div>
+        </div>
+
+        <div class="form-wrap">
+          <div>
+            <p class="muted" style="font-size:12px;margin:0 0 14px">命名空间与可见范围在右侧「发布设置」区选择，滚动时保持可见。</p>
+
+            <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:8px">插件来源<span class="req">*</span></label>
+            <div class="tabs" id="srcTabs">
+              <button class="on" data-p="npm">npm 包名</button>
+              <button data-p="git">内网 Git 仓库</button>
+              <button data-p="zip">zip 压缩包</button>
+              <button data-p="folder">文件夹</button>
+            </div>
+
+            <!-- npm -->
+            <div class="panel" data-panel="npm">
+              <div class="field">
+                <label>npm 包名<span class="req">*</span></label>
+                <input class="input" value="@team/dsh-ops" />
+                <div class="help">支持 scoped 包名；版本由服务端自动取最新非预发布版本（跳过 prerelease），提交时冻结，不支持手动指定；分支 / tag / commit / 凭据同样不填。</div>
+              </div>
+              <div class="hint" style="margin-top:0"><span>ⓘ</span><span>本来源没有版本输入框——任何途径传入版本都不受理（PRD §6.3 产品红线）。</span></div>
+            </div>
+
+            <!-- git -->
+            <div class="panel" data-panel="git" hidden>
+              <div class="field">
+                <label>仓库地址<span class="req">*</span></label>
+                <input class="input" placeholder="https://git.internal/team/plugins" />
+                <div class="help">接受 <code>https://host/group/repo</code> 与 <code>git@host:group/repo.git</code>（内部归一）；凭据由平台配置，用户不填任何凭据；一个插件一个仓库，插件包必须位于仓库根目录。</div>
+              </div>
+              <div class="hint" style="margin-top:-4px"><span>ⓘ</span><span>本来源只有仓库地址一个输入框：禁止填分支 / tag / commit / 子目录，一律取默认分支的最新提交，索引里锁定到该提交。</span></div>
+            </div>
+
+            <!-- zip -->
+            <div class="panel" data-panel="zip" hidden>
+              <div class="drop">
+                <div class="big">拖入 zip，或点击选择文件</div>
+                <div>需包含 <code>package.json</code>（name + version + 非 private）· 单包 ≤ 50 MiB</div>
+              </div>
+              <div class="hint" style="margin-top:10px"><span>ⓘ</span><span>解压校验后由平台发布成 npm 包，索引里记为 <code>source.type = npm</code>。</span></div>
+            </div>
+
+            <!-- folder -->
+            <div class="panel" data-panel="folder" hidden>
+              <div class="drop">
+                <div class="big">选择插件目录</div>
+                <div>前端会打包为 zip 后上传；空目录与符号链接不会保留</div>
+              </div>
+              <div class="hint" style="margin-top:10px"><span class="warn">⚠</span><span>部分浏览器不支持目录选择，请改用 zip 上传。</span></div>
+            </div>
+
+            <div class="field" style="margin-top:18px">
+              <label>分类<span class="req">*</span></label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <span class="chip">智能体</span><span class="chip">界面</span><span class="chip">记忆</span><span class="chip">通信</span>
+                <span class="chip active">开发工具</span><span class="chip">搜索与知识</span><span class="chip">数据分析</span><span class="chip">安全</span><span class="chip">其他</span>
+              </div>
+              <div class="help">分类是人工唯一需要选择的内容字段，会写入索引的 <code>metadata.category</code>。</div>
+            </div>
+
+            <div class="auto" style="margin-top:20px">
+              <div class="ah"><span class="badge">自动解析</span><span>以下内容来自包内声明，不可编辑</span></div>
+              <div class="ab">
+                <div class="ro"><div class="k">包名 name</div><div class="v">@team/dsh-ops</div></div>
+                <div class="ro"><div class="k">版本 version</div><div class="v">1.4.0</div></div>
+                <div class="ro"><div class="k">engines.dsh</div><div class="v">&gt;= 0.2.2</div></div>
+                <div class="ro"><div class="k">仓库 repository</div><div class="v">git.internal/team/plugins</div></div>
+                <div class="ro"><div class="k">标题 / 简介</div><div class="v">Ops 工具集 · 降低 Token 消耗</div></div>
+                <div class="ro"><div class="k">README</div><div class="v">已快照 · 1.8 KB</div></div>
+                <div class="ro"><div class="k">图标</div><div class="v">包内 icon.svg · 4.2 KB</div></div>
+                <div class="ro"><div class="k">提交来源</div><div class="v">npm → source.type = npm</div></div>
+              </div>
+            </div>
+
+            <div class="check" style="margin-top:20px">
+              <h4>提交前校验</h4>
+              <ul>
+                <li><span class="tick ok">✓</span><span>package.json 可解析</span></li>
+                <li><span class="tick ok">✓</span><span>name 合法，version 是精确 SemVer</span></li>
+                <li><span class="tick ok">✓</span><span>未标记 private</span></li>
+                <li><span class="badge" style="background:#FDECEC;color:var(--danger)">✕ 拒绝</span><span>这不是 DSH 插件：缺少 <code>dsh.bundle</code> 声明，装进 DSH 也不会生效（提交前校验不通过，当场拒绝）</span></li>
+                <li><span class="tick idle">·</span><span>该版本是否已存在（提交时校验）</span></li>
+                <li><span class="tick idle">·</span><span>图标 ≤ 32 KiB</span></li>
+              </ul>
+              <hr class="hr" style="margin:0 0 12px" />
+              <div style="font-size:11.5px;color:var(--text-3);line-height:1.65">
+                标题、简介与图标取自包内声明。要改这些内容，请更新包后重新提交——索引必须与实际可安装的那一份包一致。
+              </div>
+            </div>
+
+          </div>
+
+          <aside class="settings" aria-labelledby="publish-settings-heading">
+            <h4 id="publish-settings-heading">发布设置</h4>
+            <div class="field">
+              <label for="namespaceSel">归属命名空间<span class="req">*</span></label>
+              <select class="sel" id="namespaceSel" aria-describedby="namespaceHelp">
+                <option value="team" selected>team（我可以发布）</option>
+                <option value="wang">个人空间（@wang）</option>
+              </select>
+              <div class="help" id="namespaceHelp">提交权限与是否需要审核由该空间的发布策略决定；<b>更新版本时此项禁用、不可更改</b>（PRD §6.3）。</div>
+            </div>
+            <div class="field">
+              <label for="visibilitySel">可见范围<span class="req">*</span></label>
+              <select class="sel" id="visibilitySel" aria-describedby="visibilityHint">
+                <option value="PUBLIC" selected>公开</option>
+                <option value="NAMESPACE_ONLY">仅命名空间</option>
+                <option value="PRIVATE">私有</option>
+              </select>
+              <div class="help" id="visibilityHint">空间公开时进入索引源，DSH「发现」页可搜到。</div>
+            </div>
+          </aside>
+
+          <div style="display:flex;gap:8px;margin-top:4px;align-items:center">
+            <button class="btn btn-dark">提交</button>
+            <button class="btn">取消</button>
+            <span class="muted" id="submitNote" style="font-size:12px;margin-left:auto">提交后进入审核队列（team 空间需审核）</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ol class="notes">
+      <li><b>01</b> npm / git 直接产生 source；zip / 文件夹由平台发布成 npm 包后记为 npm</li>
+      <li><b>02</b> zip 与文件夹必须含合法 <code>package.json</code> 且声明 <code>dsh.bundle</code>，提交前校验不通过当场拒绝；通过则 202 异步受理进入排队中（不产生同步 422，也不留版本记录）</li>
+      <li><b>03</b> 版本冲突返回 409：Git 提示"请先在仓库中升级版本号再提交"，npm 提示"该版本已存在，请先在上游 npm 发布新版本后重新提交"</li>
+      <li><b>04</b> 发布失败（仅 zip / 文件夹来源）保留审核结论：个人空间停「待发布」、团队空间停「已通过审核，等待发布」；两态都没有可安装制品、不进索引，作者可见脱敏原因并可重试，重试成功才上架；npm 与 git 来源不经这一步，审核通过即上架（PRD §6.5 / §6.6 / 验收 17）</li>
+      <li><b>05</b> 审核与否由空间策略决定，提示文案随空间变化</li>
+      <li><b>06</b> 文件夹来源在浏览器不支持时降级提示改用 zip</li>
+      <li><b>07</b> npm 来源无版本输入框、任何途径传入版本都不受理；版本取 latest 跳过 prerelease 并在提交时冻结，审核 / 发布不重新解析（PRD §6.3 / §6.6）</li>
+      <li><b>08</b> Git 来源无子目录输入框、也无分支 / tag / commit / 凭据输入框；API 夹带 path（子目录）同样不受理——一个插件一个仓库，包在仓库根目录（PRD §6.2 / §6.3）</li>
+      <li><b>09</b> 可见范围决定是否进公共索引：公开 + 空间公开才进索引；「仅命名空间」不进索引、仅该空间成员站内可见；「私有」仅作者本人可见（PRD §6.3 / §8.2 / §8.4）。右栏「发布设置」与技能发布页同构：命名空间、可见范围常驻可见、可下拉选择，更新版本时命名空间禁用；<b>选到「公开」以外时，可见范围下方立刻出现醒目提示「不会进入索引源」，不需要等到提交才知道</b></li>
+    </ol>
+  </section>
+
+  <!-- ============ S06 ============ -->
+  <section class="screen" id="s06">
+    <div class="screen-head">
+      <span class="no">S06</span>
+      <h2>我的插件</h2>
+      <span class="path">/dashboard/plugins · PRD §6.5</span>
+      <p class="desc">作者视角的状态机：待审核 / 已上架 / 已拒绝 / 已下架，拒绝可看原因并重新提交。</p>
+    </div>
+
+    <div class="browser">
+      <div class="chrome">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="urlbar"><span class="lock">▣</span> localhost:3000/dashboard/plugins</div>
+      </div>
+      <div class="vp-inner grain">
+        <div class="app-header">
+          <div class="brand"><span class="mark">S</span>SkillHub</div>
+          <nav class="nav"><a>首页</a><a>插件市场</a><a>技能市场</a><a>技能套件</a><a class="active">控制台</a></nav>
+          <div class="header-right"><span class="icon-btn">◐</span><span class="icon-btn">文</span><span class="avatar">王</span></div>
+        </div>
+
+        <div class="market-head">
+          <div>
+            <h2>我的插件</h2>
+            <p>我提交到各命名空间的 DSH 插件</p>
+          </div>
+          <div class="actions"><button class="btn">去插件市场</button><button class="btn btn-dark">＋ 提交插件</button></div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search"><span class="ico">⌕</span>搜索包名或标题…</div>
+          <button class="btn btn-sm">全部状态 ▾</button>
+          <button class="btn btn-sm">全部命名空间 ▾</button>
+        </div>
+
+        <div style="padding:16px 28px 30px">
+          <div class="table">
+            <div class="tr th"><span>插件</span><span>版本</span><span>状态</span><span>索引状态</span><span>分类</span><span>操作</span></div>
+
+            <div class="tr">
+              <div class="nm"><div class="picon" style="background:linear-gradient(135deg,#3B5BFF,#6E8BFF)">O</div>
+                <div><div style="font-weight:600;font-size:13px">Ops 工具集</div><div class="mono muted" style="font-size:11px">@team/dsh-ops</div></div>
+              </div>
+              <span class="mono">1.4.0</span>
+              <span><span class="badge badge-ok">已上架</span></span>
+              <span class="idxcell ok" title="空间公开 + 可见范围 PUBLIC → 进公共索引">已收录</span>
+              <span class="muted">开发工具</span>
+              <span><button class="btn btn-sm">查看</button> <button class="btn btn-sm btn-ghost">下架</button></span>
+            </div>
+
+            <div class="tr">
+              <div class="nm"><div class="picon" style="background:linear-gradient(135deg,#0FA37F,#45CFA6)">C</div>
+                <div><div style="font-weight:600;font-size:13px">上下文洞察</div><div class="mono muted" style="font-size:11px">@team/dsh-context</div></div>
+              </div>
+              <span class="mono">1.0.0</span>
+              <span><span class="badge badge-warn">待审核</span></span>
+              <span class="idxcell" title="待审核中，尚无已上架版本">未收录：无已上架版本</span>
+              <span class="muted">记忆</span>
+              <span><button class="btn btn-sm">查看进度</button></span>
+            </div>
+
+            <div class="tr">
+              <div class="nm"><div class="picon" style="background:linear-gradient(135deg,#E2703A,#F2A463)">W</div>
+                <div><div style="font-weight:600;font-size:13px">Workspace 快照</div><div class="mono muted" style="font-size:11px">dsh-workspace-snap</div></div>
+              </div>
+              <span class="mono">0.2.0</span>
+              <span><span class="badge" style="background:#FDECEC;color:var(--danger)">已拒绝</span></span>
+              <span class="idxcell" title="最新版本被拒绝，尚无已上架版本">未收录：无已上架版本</span>
+              <span class="muted">开发工具</span>
+              <span><button class="btn btn-sm">看原因</button> <button class="btn btn-sm btn-ghost">重新提交</button></span>
+            </div>
+
+            <div class="tr">
+              <div class="nm"><div class="picon" style="background:linear-gradient(135deg,#4B4B57,#7C7C8C)">T</div>
+                <div><div style="font-weight:600;font-size:13px">旧版主题包</div><div class="mono muted" style="font-size:11px">@team/dsh-theme-legacy</div></div>
+              </div>
+              <span class="mono">0.1.3</span>
+              <span><span class="badge">已下架</span></span>
+              <span class="idxcell" title="已下架后没有已上架版本，下一轮重建即剔除">未收录：无已上架版本</span>
+              <span class="muted">界面</span>
+              <span><button class="btn btn-sm">重新上架</button></span>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;font-size:12.5px;color:var(--text-2);display:flex;gap:8px;align-items:flex-start">
+            <b class="tag-prd">!</b>
+            <span>已拒绝的插件不会出现在插件市场与索引文件中；原因含具体校验失败项（如"该版本已存在"）。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ol class="notes">
+      <li><b>01</b> 状态与 PRD §8.1 的 <code>status</code> 一一对应，不额外造词</li>
+      <li><b>02</b> 下架立即触发索引重建，作者可自助重新上架</li>
+      <li><b>03</b> 状态变更全部写审计日志</li>
+      <li><b>04</b> 入口两处：插件市场页头「我的插件」与控制台侧栏「技能与数据」组，与「我的技能」对称</li>
+      <li><b>05</b> 空间维度的同一批数据在 S07 的「插件」tab 里按空间视角再看一遍</li>
+      <li><b>06</b> 索引状态只回答"为什么搜不到"，取值<strong>逐字</strong>取自 PRD §3.4 的六值：<code>已收录</code> / <code>待重建</code> / <code>未收录：空间为私有</code> / <code>未收录：可见范围非公开</code> / <code>未收录：最新版本裁决为有红线</code> / <code>未收录：无已上架版本</code>——六值里没有"待审核 / 已拒绝 / 已下架"这类状态词，这三种状态都归到「未收录：无已上架版本」（它们确实没有已上架版本）。该列由服务端按 <code>visibility</code> + <code>namespaceIsPublic</code> 派生下发，前端不推断（PRD §3.4 / §8.4）</li>
+    </ol>
+  </section>
+
+  <!-- ============ S07 ============ -->
+  <section class="screen" id="s07">
+    <div class="screen-head">
+      <span class="no">S07</span>
+      <h2>命名空间 · 插件管理</h2>
+      <span class="path">/dashboard/namespaces/test/plugins · PRD §3.4</span>
+      <p class="desc">命名空间详情新增「插件」tab（排在技能之后）：空间成员看本空间全部插件，ADMIN 直接处理下架、分类、重扫。</p>
+    </div>
+
+    <div class="browser">
+      <div class="chrome">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="urlbar"><span class="lock">▣</span> localhost:3000/dashboard/namespaces/test/plugins</div>
+      </div>
+      <div class="vp-inner grain">
+        <div class="app-header">
+          <div class="brand"><span class="mark">S</span>SkillHub</div>
+          <nav class="nav"><a>首页</a><a>插件市场</a><a>技能市场</a><a>技能套件</a><a class="active">控制台</a></nav>
+          <div class="header-right"><span class="icon-btn">◐</span><span class="icon-btn">文</span><span class="avatar">王</span></div>
+        </div>
+
+        <div class="ns-wrap">
+          <div class="back">← 返回命名空间列表</div>
+          <div class="ns-head">
+            <div class="picon" style="background:linear-gradient(135deg,#3B5BFF,#7B5CFF)">TE</div>
+            <div>
+              <h2>test <span class="badge">团队空间</span> <span class="badge badge-warn">需审核</span></h2>
+              <p>平台测试空间 · 12 位成员 · 4 个插件 · 28 个技能</p>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <button class="btn">空间设置</button>
+              <button class="btn btn-dark">＋ 提交插件</button>
+            </div>
+          </div>
+
+          <nav class="nstabs">
+            <a>技能</a><a class="on">插件</a><a>成员</a><a>审核</a><a>设置</a>
+          </nav>
+
+          <div style="display:flex;gap:8px;align-items:center;margin:16px 0 14px">
+            <div class="search" style="width:260px"><span class="ico">⌕</span>搜索标题或 npm 包名…</div>
+            <button class="btn btn-sm">全部状态 ▾</button>
+            <button class="btn btn-sm">全部分类 ▾</button>
+            <span style="margin-left:auto;font-size:12px;color:var(--text-3)">共 4 个插件</span>
+          </div>
+
+          <div class="table">
+            <div class="tr tr-ns th"><span>插件</span><span>版本</span><span>状态</span><span>分类</span><span>裁决</span><span>操作</span></div>
+
+            <div class="tr tr-ns">
+              <div class="nm"><div class="picon" style="background:linear-gradient(135deg,#3B5BFF,#6E8BFF)">O</div>
+                <div><div style="font-weight:600;font-size:13px">Ops 工具集</div><div class="mono muted" style="font-size:11px">@test/dsh-ops</div></div>
+              </div>
+              <span class="mono">1.4.0</span>
+              <span><span class="badge badge-ok">已上架</span></span>
+              <span class="muted">开发工具</span>
+              <span><span class="badge">未检出</span></span>
+              <span class="ops"><button class="btn btn-sm">查看</button><button class="btn btn-sm btn-ghost">下架</button></span>
+            </div>
+
+            <div class="tr tr-ns">
+              <div class="nm"><div class="picon" style="background:linear-gradient(135deg,#0FA37F,#45CFA6)">C</div>
+                <div><div style="font-weight:600;font-size:13px">上下文洞察</div><div class="mono muted" style="font-size:11px">@test/dsh-context</div></div>
+              </div>
+              <span class="mono">1.0.0</span>
+              <span><span class="badge badge-warn">待审核</span></span>
+              <span class="muted">记忆</span>
+              <span><span class="badge badge-warn">需确认</span></span>
+              <span class="ops"><button class="btn btn-sm">审阅</button><button class="btn btn-sm btn-ghost">撤回</button></span>
+            </div>
+
+            <div class="tr tr-ns">
+              <div class="nm"><div class="picon" style="background:linear-gradient(135deg,#E2703A,#F2A463)">W</div>
+                <div><div style="font-weight:600;font-size:13px">Workspace 快照</div><div class="mono muted" style="font-size:11px">dsh-workspace-snap</div></div>
+              </div>
+              <span class="mono">0.2.0</span>
+              <span><span class="badge" style="background:#FDECEC;color:var(--danger)">已拒绝</span></span>
+              <span class="muted">开发工具</span>
+              <span><span class="badge" style="background:#FDECEC;color:var(--danger)">有红线</span></span>
+              <span class="ops"><button class="btn btn-sm">看原因</button><button class="btn btn-sm btn-ghost">重新提交</button></span>
+            </div>
+
+            <div class="tr tr-ns">
+              <div class="nm"><div class="picon" style="background:linear-gradient(135deg,#4B4B57,#7C7C8C)">T</div>
+                <div><div style="font-weight:600;font-size:13px">旧版主题包</div><div class="mono muted" style="font-size:11px">@test/dsh-theme-legacy</div></div>
+              </div>
+              <span class="mono">0.1.3</span>
+              <span><span class="badge">已下架</span></span>
+              <span class="muted">界面</span>
+              <span><span class="badge">未检出</span></span>
+              <span class="ops"><button class="btn btn-sm">恢复上架</button><button class="btn btn-sm btn-ghost">详情</button></span>
+            </div>
+          </div>
+
+          <div class="hint" style="margin-top:14px">
+            <span class="warn">⚠</span>
+            <span>列表含待审核、已拒绝、已下架；只有「已上架 + 公开空间 + 可见范围 <code>PUBLIC</code>」的版本会写进 <code>/dsh/index.json</code>（PRD §8.2）。</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ol class="notes">
+      <li><b>01</b> tab 顺序：技能 / 插件 / 成员 / 审核 / 设置；成员仅团队空间、审核按权限显示</li>
+      <li><b>02</b> 列表含 PENDING / REJECTED / HIDDEN，不是只看已上架</li>
+      <li><b>03</b> 下架、恢复、改分类、重扫只对空间 ADMIN 渲染；MEMBER 只读</li>
+      <li><b>04</b> 「提交插件」带 <code>?namespace=test</code> 预填，少一步选择</li>
+      <li><b>05</b> 与「我的插件」共用同一表格组件，差别只在数据范围与操作列</li>
+      <li><b>06</b> 非空间成员访问该路由返回 403 / 空态，不泄漏插件清单</li>
+    </ol>
+  </section>
+
+  <!-- ============ S08 ============ -->
+  <section class="screen" id="s08">
+    <div class="screen-head">
+      <span class="no">S08</span>
+      <h2>审核队列 · 插件审批（复用既有治理审核页）</h2>
+      <span class="path">复用既有治理审核页（governance/review），不新增路由 · PRD §6.5 / §7.3</span>
+      <p class="desc">审核人批的是<strong>尚未上架的待审版本</strong>，不是线上制品。插件专属字段块仅在 <code>subject_type = PLUGIN_VERSION</code> 时渲染，与技能审核共用同一队列；字段块下方可直接浏览包内文件清单与文本内容（人工审查代码用）。</p>
+    </div>
+
+    <div class="browser">
+      <div class="chrome">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="urlbar"><span class="lock">▣</span> localhost:3000/governance/review</div>
+      </div>
+      <div class="vp-inner grain">
+        <div class="app-header">
+          <div class="brand"><span class="mark">S</span>SkillHub</div>
+          <nav class="nav"><a>首页</a><a>插件市场</a><a>技能市场</a><a>技能套件</a><a class="active">控制台</a></nav>
+          <div class="header-right"><span class="icon-btn">◐</span><span class="icon-btn">文</span><span class="avatar">李</span></div>
+        </div>
+
+        <div class="ns-wrap">
+          <div class="back">← 返回审核队列</div>
+          <div class="ns-head">
+            <div class="picon" style="background:linear-gradient(135deg,#0FA37F,#45CFA6)">C</div>
+            <div>
+              <h2>待审条目 <span class="badge badge-warn">PLUGIN_VERSION</span> <span class="badge">待审 · 未上架</span></h2>
+              <p>队列按 subject_type 分流；下方字段块为该条目的插件专属部分。</p>
+            </div>
+            <div style="margin-left:auto"><span class="muted" style="font-size:12px">待我审核 · 1 条插件 + 3 条技能</span></div>
+          </div>
+
+          <div class="module" style="margin-top:16px">
+            <div class="module-head"><span class="idx">1</span><h3>待审插件条目</h3></div>
+            <p class="module-sub">先核对审的是哪个插件、哪个版本、谁提交的、报告有多旧。</p>
+            <div class="tr" style="grid-template-columns:1.4fr 80px 1fr 110px 170px;border:0;padding:8px 0">
+              <span><b>上下文洞察</b></span>
+              <span class="mono">1.0.0</span>
+              <span class="mono">@test/dsh-context</span>
+              <span>提交人：王（test 空间）</span>
+              <span class="badge badge-warn">报告生成于 3 天前</span>
+            </div>
+          </div>
+
+          <div class="module">
+            <div class="module-head"><span class="idx">2</span><h3>插件审核信息 <span class="tag-prd">PluginReviewFields</span></h3></div>
+            <p class="module-sub">字段块常驻可见、不可折叠；与详情页/索引不共用扫描文案口径以外的表述。</p>
+            <div class="auto">
+              <div class="ah"><span class="badge badge-warn">待审 · 未上架</span><span>sha512 前 8 位 3f9c1a8b</span></div>
+              <div class="ab">
+                <div class="ro"><div class="k">暂存包内容指纹 sha512</div><div class="v">3f9c1a8b7d2e…（前 16 位 + 展开）</div></div>
+                <div class="ro"><div class="k">扫描报告指纹 fingerprint</div><div class="v">rpt_9d21ef…（与 tarball_sha512 对齐）</div></div>
+                <div class="ro"><div class="k">报告生成时间</div><div class="v">2026-11-23 09:14 · 3 天前</div></div>
+                <div class="ro"><div class="k">扫描工具版本</div><div class="v">scanner v2.3.1</div></div>
+                <div class="ro"><div class="k">版本（提交时冻结）</div><div class="v">1.0.0 · 非审核当下的 registry latest</div></div>
+              </div>
+            </div>
+            <div class="hint" style="margin-top:12px"><span class="warn">⚠</span><span><b>该版本尚未上架，通过后才会进入插件市场与索引</b>；审核页只表达"已上架 / 未上架"，不涉及平台内部发布动作。</span></div>
+          </div>
+
+          <div class="module">
+            <div class="module-head"><span class="idx">3</span><h3>包内文件 <span class="tag-prd">PRD §6.5</span></h3></div>
+            <p class="module-sub">审核人必须能自己看代码：左侧是本次提交待审包的文件清单（<strong>按目录层级展开的目录树</strong> + 每个文件大小），目录节点可折叠、显示"文件数 + 合计大小"；右侧是单个文件的纯文本预览。</p>
+            <div class="auto">
+              <div class="ah">
+                <span class="badge badge-warn">待审 · 未上架</span>
+                <span>内容来自本次提交的待审包，与 sha512 指纹 3f9c1a8b… 为同一份字节；预览只读，不执行任何包内代码</span>
+              </div>
+              <div style="display:grid;grid-template-columns:296px 1fr;gap:0">
+
+                <!-- 文件树：按目录层级展开，目录节点可折叠（点击目录行切换） -->
+                <div style="border-right:1px solid var(--line-soft);padding:10px 12px;font-family:var(--mono);font-size:11.5px;line-height:1.95;color:var(--text-2)">
+                  <div style="color:var(--text-3);font-size:11px;letter-spacing:.06em;margin-bottom:6px">32 个文件 · 412 KB · 按目录展开</div>
+
+                  <!-- 根目录文件 -->
+                  <div>.gitignore <span class="muted">· 128 B</span></div>
+                  <div><b>.env</b> <span class="muted">· 214 B</span> <span class="badge badge-warn">敏感</span></div>
+                  <div>README.md <span class="muted">· 1.8 KB</span></div>
+                  <div>index.js <span class="muted">· 4.6 KB</span> <span class="badge">当前预览</span></div>
+                  <div>package.json <span class="muted">· 1.2 KB</span></div>
+
+                  <!-- 目录：assets（展开态） -->
+                  <div class="ftree-dir" style="display:flex;align-items:center;gap:5px;margin-top:3px;cursor:pointer">
+                    <span class="muted" style="font-size:10px">▾</span><b>assets/</b>
+                    <span class="muted" style="font-size:11px">· 1 个文件 · 12 KB</span>
+                  </div>
+                  <div class="ftree-kids" style="padding-left:16px">logo.png <span class="muted">· 二进制 · 12 KB</span></div>
+
+                  <!-- 目录：dist（展开态） -->
+                  <div class="ftree-dir" style="display:flex;align-items:center;gap:5px;margin-top:3px;cursor:pointer">
+                    <span class="muted" style="font-size:10px">▾</span><b>dist/</b>
+                    <span class="muted" style="font-size:11px">· 2 个文件 · 99 KB</span>
+                  </div>
+                  <div class="ftree-kids" style="padding-left:16px">bundle.js <span class="muted">· 96 KB</span></div>
+                  <div class="ftree-kids" style="padding-left:16px">theme.css <span class="muted">· 3.1 KB</span></div>
+
+                  <div style="color:var(--text-3);margin-top:4px">… 其余 24 个文件</div>
+                  <div style="color:var(--text-3);font-size:11px;line-height:1.6;margin-top:6px">目录节点折叠后只显示"文件数 + 合计大小"；任何层级都不把子文件路径拼成一列。</div>
+                </div>
+
+                <!-- 文本预览 -->
+                <div style="padding:10px 14px;min-width:0">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+                    <span class="mono" style="font-size:12px;font-weight:600">index.js</span>
+                    <span class="muted" style="font-size:11.5px">纯文本 · 4.6 KB · 只读</span>
+                    <span style="margin-left:auto;display:flex;gap:6px">
+                      <button class="btn btn-sm">下载此文件</button>
+                      <button class="btn btn-sm">下载原始包</button>
+                    </span>
+                  </div>
+                  <pre class="code" style="margin:0;white-space:pre;overflow:auto;font-size:11.5px;line-height:1.7">export function activate(ctx) {
+  const cfg = ctx.config.get('ops');
+  ctx.tools.register('ops.read_range', async (args) =&gt; {
+    const lines = await ctx.fs.readLines(args.path);
+    return lines.slice(args.start - 1, args.end).join('\n');
+  });
+  ctx.log.info('ops tools ready', { profile: cfg.profile });
+}</pre>
+                  <div class="hint" style="margin-top:10px"><span>ⓘ</span><span>预览以纯文本展示：包内的 HTML / SVG / JS 都不会被本站渲染或执行；<code>dist/theme.css</code> 同样只按文本显示。</span></div>
+                  <div style="margin-top:8px;border:1px dashed #D5DAE3;border-radius:8px;padding:9px 12px;background:#FAFBFC;font-size:12px;color:var(--text-3)">
+                    选中 <code>assets/logo.png</code>（二进制）时：右侧显示「二进制文件不预览 · PNG · 12 KB」+「下载查看」，<b>不渲染图片</b>。
+                  </div>
+                  <div style="margin-top:8px;font-size:11.5px;color:var(--text-3)">单文件超过 512 KiB 不内联预览，改为「下载查看」；每次打开清单 / 查看文件 / 下载都写审计（谁、何时、哪个提交、看了什么）。</div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="module">
+            <div class="module-head"><span class="idx">4</span><h3>扫描结论与裁决</h3></div>
+            <p class="module-sub">闸门只看红线与能力、不看分数；拒绝必须填理由。</p>
+            <div class="tr" style="grid-template-columns:120px 1fr;border:0;padding:6px 0"><span>能力 / 红线摘要</span><span>未检出红线 · 需确认能力 2 项（与详情页同一套文案）</span></div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap">
+              <button class="btn btn-dark">✓ 通过</button>
+              <button class="btn">✕ 拒绝（必填理由）</button>
+              <button class="btn btn-ghost">查看完整扫描报告 ↗</button>
+              <span class="badge badge-warn">报告生成于 2026-11-23 09:14 · 3 天前</span>
+            </div>
+            <div class="hint"><span>ⓘ</span><span>审核通过才对外提供安装、发布成功才进索引；拒绝不产生任何制品，无需撤销或清理任何已发布内容。</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ol class="notes">
+      <li><b>01</b> 不新增路由：复用既有治理审核页，仅按 <code>subject_type = PLUGIN_VERSION</code> 渲染 PluginReviewFields 字段块</li>
+      <li><b>02</b> 审核对象是尚未上架的待审版本；「待审 · 未上架」徽标常驻、不可折叠</li>
+      <li><b>03</b> 报告生成时间 + 工具版本 + 指纹放在裁决旁边；报告可能过时数天，但不自动重扫（PRD §13 R8）</li>
+      <li><b>04</b> 通过才对外提供安装、发布成功才进索引；拒绝不产生任何制品，无需撤销或清理</li>
+      <li><b>05</b> npm 来源显示提交时冻结的版本，不是审核当下的 registry latest</li>
+      <li><b>06</b> 与技能审核共用队列、决策入口按 <code>subject_type</code> 分流，不影响技能既有审核路径</li>
+      <li><b>07</b> 包内文件读的是<strong>本次提交的待审包</strong>，与页面上的 sha512 指纹为同一份字节；不得改从上游 npm / Git 仓库拉（审的与发的必须是同一份，PRD §6.5）</li>
+      <li><b>08</b> 预览只读纯文本：不渲染包内 HTML / SVG、不执行包内 JS、不加载包内资源；二进制只显示类型与大小、单文件 &gt; 512 KiB 改「下载查看」；<code>.env</code> / <code>*.pem</code> / <code>*.key</code> / <code>id_rsa</code> 只做敏感标记、<strong>不阻止查看</strong>；打开清单 / 查看文件 / 下载均写审计（PRD §6.5 / §9）</li>
+      <li><b>09</b> 文件清单<strong>必须按目录层级展开</strong>：目录节点带折叠箭头、显示"文件数 + 合计大小"，子文件用缩进挂在目录下；<strong>不得把全部文件平铺成一列完整路径</strong>（PRD §6.5 第 1 条）</li>
+    </ol>
+  </section>
+
+  <section class="screen">
+    <div class="screen-head"><span class="no">NOTE</span><h2>原型说明</h2></div>
+
+    <div class="module">
+      <ul style="margin:0;padding-left:20px;font-size:13px;color:var(--text-2);line-height:1.9">
+        <li>本原型是静态 HTML，仅用于对齐界面结构与文案，不代表已实现；数据均为示例。</li>
+        <li>索引源地址、安装文档地址统一走 <code>/dsh/</code> 前缀，示例域名为 <code>skillhub.example.com</code>。</li>
+        <li>深色态、移动端断点、空态与错误态未在本文件展开，实现时按现有设计系统补充。</li>
+        <li>所有用户可见文案需进 i18n（zh / en / ko / ru），本原型只提供中文。</li>
+        <li>本原型对应 PRD v2.17（443 行）；与 PRD 冲突时以 PRD 为准，本文件不承担需求定义。</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // 来源切换
+  document.querySelectorAll('#srcTabs button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('#srcTabs button').forEach(function (b) { b.classList.remove('on'); });
+      btn.classList.add('on');
+      var target = btn.getAttribute('data-p');
+      document.querySelectorAll('.panel').forEach(function (p) {
+        p.hidden = p.getAttribute('data-panel') !== target;
+      });
+    });
+  });
+
+  // 分类 chip 单选
+  document.querySelectorAll('.module').forEach(function (mod) {
+    var chips = mod.querySelectorAll('.chip');
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        chips.forEach(function (c) { c.classList.remove('active'); });
+        chip.classList.add('active');
+      });
+    });
+  });
+
+  // 包内文件树：目录节点折叠 / 展开（只切显示，不重排结构）
+  document.querySelectorAll('.ftree-dir').forEach(function (dir) {
+    dir.addEventListener('click', function () {
+      var arrow = dir.querySelector('span');
+      var open = arrow.textContent.trim() === '▾';
+      arrow.textContent = open ? '▸' : '▾';
+      var sib = dir.nextElementSibling;
+      while (sib && sib.classList.contains('ftree-kids')) {
+        sib.style.display = open ? 'none' : '';
+        sib = sib.nextElementSibling;
+      }
+    });
+  });
+
+  // 发布设置：可见范围联动提示（非公开即不进索引源）+ 命名空间决定是否需审核
+  (function () {
+    var vis = document.getElementById('visibilitySel');
+    var hint = document.getElementById('visibilityHint');
+    var ns = document.getElementById('namespaceSel');
+    var submitNote = document.getElementById('submitNote');
+
+    var VIS_COPY = {
+      PUBLIC: ['空间公开时进入索引源，DSH「发现」页可搜到。', false],
+      NAMESPACE_ONLY: ['不会进入索引源：DSH 搜不到，仅该命名空间成员在站内可见。', true],
+      PRIVATE: ['不会进入索引源：DSH 搜不到，仅作者本人可见。', true]
+    };
+
+    function renderVisibility() {
+      if (!vis || !hint) return;
+      var copy = VIS_COPY[vis.value] || VIS_COPY.PUBLIC;
+      hint.textContent = copy[0];
+      hint.classList.toggle('warn', copy[1]);
+    }
+
+    function renderNamespace() {
+      if (!ns || !submitNote) return;
+      submitNote.textContent = ns.value === 'wang'
+        ? '提交后免审：扫描通过即上架'
+        : '提交后进入审核队列（team 空间需审核）';
+    }
+
+    if (vis) { vis.addEventListener('change', renderVisibility); renderVisibility(); }
+    if (ns) { ns.addEventListener('change', renderNamespace); renderNamespace(); }
+  })();
+
+  // 复制反馈
+  document.querySelectorAll('.js-copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var original = btn.innerHTML;
+      var text = btn.parentElement.querySelector('.code');
+      if (text && navigator.clipboard) {
+        navigator.clipboard.writeText(text.innerText.trim()).catch(function () {});
+      }
+      btn.classList.add('done');
+      btn.innerHTML = '✓ 已复制';
+      setTimeout(function () {
+        btn.classList.remove('done');
+        btn.innerHTML = original;
+      }, 1600);
+    });
+  });
+</script>
+</body>
+</html>
