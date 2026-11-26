@@ -25,7 +25,7 @@ function deferred<T>() {
   const promise = new Promise<T>(done => { resolve = done })
   return { promise, resolve }
 }
-const params = { q: '', source: 'platform' as const, sort: 'newest', size: 2 }
+const params = { q: '', sort: 'newest', size: 2 }
 
 describe('incremental market discovery', () => {
   it('starts at zero, coalesces concurrent append calls, deduplicates ids and stops at the end', async () => {
@@ -62,16 +62,16 @@ describe('incremental market discovery', () => {
     expect(vi.mocked(fetchJson).mock.calls.slice(1).every(([url]) => String(url).includes('page=1'))).toBe(true)
   })
 
-  it('does not let a late old-filter response replace the current source or viewer', async () => {
+  it('does not let a late old-filter response replace the current viewer', async () => {
     const old = deferred<PagedResponse<SkillSummary>>()
     vi.mocked(fetchJson).mockReturnValueOnce(old.promise).mockResolvedValueOnce(page([9], 0, 1))
     const { wrapper } = setup()
-    const hook = renderHook(({ source, viewer }: { source: 'platform' | 'github'; viewer: string }) => useMarketSkills({ ...params, source }, viewer, 'zh', true), { wrapper, initialProps: { source: 'platform', viewer: 'a' } })
-    hook.rerender({ source: 'github', viewer: 'b' })
+    const hook = renderHook(({ viewer }: { viewer: string }) => useMarketSkills(params, viewer, 'zh', true), { wrapper, initialProps: { viewer: 'a' } })
+    hook.rerender({ viewer: 'b' })
     await waitFor(() => expect(hook.result.current.isSuccess).toBe(true))
     await act(async () => { old.resolve(page([1, 2])); await old.promise })
     expect(flattenMarketSkills(hook.result.current.data?.pages).map(skill => skill.id)).toEqual([9])
-    expect(vi.mocked(fetchJson).mock.calls[1][0]).toContain('source=github')
+    expect(vi.mocked(fetchJson).mock.calls[1][0]).toContain('page=0')
   })
 
   it('retains all cached batches on detail-return remount without fetching them again', async () => {

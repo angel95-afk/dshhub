@@ -160,7 +160,6 @@ public class ReviewSkillDetailAppService {
                 .map(version -> new SkillVersionResponse(
                         version.getId(),
                         version.getVersion(),
-                        version.getGithubSyncRevision(),
                         version.getStatus().name(),
                         version.getChangelog(),
                         version.getFileCount(),
@@ -369,7 +368,7 @@ public class ReviewSkillDetailAppService {
             }
         }
         return new SkillLifecycleVersionResponse(version.getId(), version.getVersion(), version.getStatus().name(),
-                metadata == null ? null : metadata.displayName(), metadata == null ? null : metadata.shortDescription(), version.getGithubSyncRevision());
+                metadata == null ? null : metadata.displayName(), metadata == null ? null : metadata.shortDescription());
     }
 
     private record ReviewAccessContext(ReviewTask task, Namespace namespace, String userId, boolean reviewer) {}

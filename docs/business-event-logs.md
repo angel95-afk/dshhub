@@ -295,4 +295,4 @@ Troubleshoot using the protected Actuator counters above, this fixed warning, re
 
 Trace modes remain independent: `none`/`external-agent` still forbid the TRACE endpoint, not the business Logs endpoint. External agents must not bridge/re-export this dedicated scope or attach a second business Logs processor; verify real deployment agent plugins for duplicates. No actual external-agent installation is implied by application configuration tests. / Trace 限制仅针对 Trace 目标；部署方须检查 Agent 插件是否重复导出业务记录。
 
-For executed verification and explicit remaining limits, see [acceptance matrix](../openspec/changes/add-otlp-business-event-logs/acceptance.md).
+For executed verification and explicit remaining limits, see [acceptance matrix](../openspec/changes/archive/add-otlp-business-event-logs/acceptance.md).

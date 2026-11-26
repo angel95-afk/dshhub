@@ -53,6 +53,9 @@ public class NamespaceService {
     public Namespace createNamespace(String slug, String displayName, String description, String creatorUserId) {
         userAccountRepository.findLockedById(creatorUserId);
         SlugValidator.validate(slug);
+        // `github` stays reserved as a tombstone of the retired public catalog (see V10000):
+        // the namespace is gone, and letting a team register that slug would resurrect a
+        // misleading public-looking path.
         if ("github".equals(slug)) {
             throw new DomainBadRequestException("error.slug.reserved", slug);
         }

@@ -16,7 +16,6 @@ import { ReviewAvatarChangeSection } from '@/features/review/review-avatar-chang
 import { ReviewSkillChangesSection, ReviewSkillDetailSection } from '@/features/review/review-skill-detail-section'
 import { ReviewAttemptTimeline } from '@/features/review/review-attempt-timeline'
 import { useReviewFile } from '@/features/review/use-review-file'
-import { GithubSyncReviewDiff, GithubSyncReviewEvidence } from '@/features/review/github-sync-review-source'
 import { SecurityAuditSection } from '@/features/security-audit/security-audit-section'
 import { useSecurityAudits } from '@/features/security-audit/use-security-audit'
 import { getSecurityAuditDisplayState } from '@/features/security-audit/display-state'
@@ -29,7 +28,6 @@ import {
   useReviewAttempts,
   useReviewDetail,
   useReviewSkillDetail,
-  useGithubSyncReviewSource,
   useApproveReview,
   useRejectReview,
 } from '@/features/review/use-review-detail'
@@ -54,10 +52,7 @@ function ReviewDetailScreen({
   const { data: review, isLoading } = useReviewDetail(taskId)
   const isSuiteReview = review?.subjectType === 'SUITE_VERSION'
   const isMetadataReview = review?.subjectType === 'SKILL_METADATA' && !review.requestedVisibility
-  const isGithubSyncReview = review?.originType === 'GITHUB_SYNC'
   const returnTo = backTo
-  const { data: githubSource, isLoading: isLoadingGithubSource, isError: isGithubSourceError } =
-    useGithubSyncReviewSource(taskId, isGithubSyncReview)
   const [selectedTab, setSelectedTab] = useState<string | null>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
   const [tabNavigation, setTabNavigation] = useState(0)
@@ -78,14 +73,12 @@ function ReviewDetailScreen({
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     window.scrollTo({ top: 0, behavior: reducedMotion ? 'instant' : 'smooth' })
   }, [tabNavigation])
-  const activeTab = selectedTab ?? (isGithubSyncReview && githubSource?.baseVersionId ? 'changes' : 'content')
+  const activeTab = selectedTab ?? 'content'
   const {
     data: reviewAttempts,
     isLoading: isLoadingReviewAttempts,
     isError: isReviewAttemptsError,
   } = useReviewAttempts(taskId, activeTab === 'history')
-  const needsLicenseBasis = isGithubSyncReview && review?.namespace === 'github'
-    && Boolean(githubSource) && githubSource?.evidence.status !== 'RECOGNIZED'
   const {
     data: reviewSkillDetail,
     isLoading: isLoadingReviewSkillDetail,
@@ -93,7 +86,7 @@ function ReviewDetailScreen({
     refetch: refetchReviewSkillDetail,
   } = useReviewSkillDetail(taskId, Boolean(review) && !isSuiteReview, false)
   const hasBaseline = Boolean(!isMetadataReview && !review?.requestedVisibility && !isSuiteReview
-    && (isGithubSyncReview ? githubSource?.baseVersionId : reviewSkillDetail?.comparison))
+    && reviewSkillDetail?.comparison)
   const availableTab = activeTab === 'changes' && !hasBaseline ? 'content' : activeTab
   const comparisonQuery = useReviewSkillDetail(taskId, Boolean(review) && hasBaseline && availableTab === 'changes', true)
   const overviewNeedsDocumentation = !reviewSkillDetail?.presentation || ['README', 'SKILL_MD'].includes(reviewSkillDetail.presentation.overviewSource ?? 'NONE')
@@ -102,7 +95,7 @@ function ReviewDetailScreen({
   )
   const documentationTooLarge = Boolean(documentationFile && documentationFile.fileSize > 256 * 1024)
   const shouldLoadDocumentation = !isMetadataReview && overviewNeedsDocumentation && availableTab === 'content' && Boolean(reviewSkillDetail?.documentationPath)
-    && !documentationTooLarge && (!isGithubSyncReview || Boolean(githubSource) || isGithubSourceError)
+    && !documentationTooLarge
   const {
     data: documentationContent,
     isLoading: isLoadingDocumentation,
@@ -162,14 +155,9 @@ function ReviewDetailScreen({
   const isComparisonUnverified = hasBaseline && (comparisonQuery.isLoading || Boolean(comparisonQuery.error))
   const isApprovalBlocked = isDocumentationUnverified || isComparisonUnverified || isApprovalBlockedByScanning || isApprovalBlockedByAvatar || isAvatarOverrideReasonRequired
     || (isSuiteReview ? !reviewSuiteDetail : isLoadingReviewSkillDetail || !!reviewSkillDetailError || !reviewSkillDetail)
-    || (isGithubSyncReview && !githubSource)
 
   const handleApprove = async () => {
     if (isApprovalBlocked || review?.canReview !== true || review.status !== 'PENDING') {
-      return
-    }
-    if (needsLicenseBasis && !comment.trim()) {
-      toast.error(t('review.githubLicenseBasisRequired'))
       return
     }
     approveMutation.mutate({ taskId, comment: comment || undefined })
@@ -244,7 +232,6 @@ function ReviewDetailScreen({
                       : <span className="text-xs text-muted-foreground">{t(activeReviewVersion?.status === 'SCANNING' ? 'review.scanPending' : activeReviewVersion?.status === 'SCAN_FAILED' ? 'review.scanFailed' : 'review.scanUnavailable')}</span>}
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">{t('reviewWorkbench.viewScanEvidence')}<ArrowRight className="h-3 w-3" aria-hidden="true" /></span>
             </button>
-            {isGithubSyncReview && <button type="button" data-analytics-id="review.source.open" onClick={() => selectTab('source', true)} className="inline-flex min-h-9 flex-wrap items-center gap-2 rounded-sm text-left text-sm underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><span className="font-medium">{t('review.githubLicenseStatus')}</span><span className="text-xs text-muted-foreground">{githubSource ? t(`review.githubLicense${githubSource.evidence.status}`, { defaultValue: githubSource.evidence.status }) : t(isGithubSourceError ? 'review.githubSourceError' : 'review.scanLoading')}</span><ArrowRight className="h-3 w-3" aria-hidden="true" /></button>}
           </div>}
         </ReviewTaskHeader>
       </div>
@@ -313,19 +300,8 @@ function ReviewDetailScreen({
           )}
         </TabsContent>
         <TabsContent value="changes" className="space-y-4 motion-reduce:animate-none">
-          {isGithubSyncReview && (
-            isLoadingGithubSource ? <Card className="h-32 animate-shimmer" />
-              : githubSource ? <GithubSyncReviewDiff source={githubSource} reviewId={taskId} />
-                : isGithubSourceError ? <Card className="p-4 text-sm text-destructive">{t('review.githubSourceError')}</Card> : null
-          )}
           {!isSuiteReview && !isMetadataReview && (
-            isGithubSyncReview ? (
-              <details className="rounded border bg-card p-3 text-sm">
-                <summary className="cursor-pointer font-medium">{t('reviewWorkbench.presentationChanges')}</summary>
-                <div className="mt-3"><ReviewSkillChangesSection detail={comparisonQuery.data ?? reviewSkillDetail} isLoading={comparisonQuery.isLoading}
-                  hasError={Boolean(comparisonQuery.error)} onRetry={() => void comparisonQuery.refetch?.()} concealTechnicalVersions /></div>
-              </details>
-            ) : <ReviewSkillChangesSection detail={comparisonQuery.data ?? reviewSkillDetail} isLoading={comparisonQuery.isLoading}
+            <ReviewSkillChangesSection detail={comparisonQuery.data ?? reviewSkillDetail} isLoading={comparisonQuery.isLoading}
               hasError={Boolean(comparisonQuery.error)} onRetry={() => void comparisonQuery.refetch?.()} />
           )}
         </TabsContent>
@@ -334,9 +310,6 @@ function ReviewDetailScreen({
             : skillId && versionId ? <SecurityAuditSection skillId={skillId} versionId={versionId}
             versionStatus={activeReviewVersion?.status} showEmptyState compact />
             : <Card className="p-4 text-sm text-muted-foreground">{t('review.scanUnavailable')}</Card>}
-          {isGithubSyncReview && (isLoadingGithubSource ? <Card className="h-32 animate-shimmer" />
-            : githubSource ? <GithubSyncReviewEvidence source={githubSource} />
-              : <Card className="p-4 text-sm text-destructive">{t('review.githubSourceError')}</Card>)}
         </TabsContent>}
         <TabsContent value="history" className="space-y-4 motion-reduce:animate-none">
           <section className="space-y-3">
@@ -374,7 +347,7 @@ function ReviewDetailScreen({
           <div className="flex flex-col gap-2 lg:flex-row lg:items-end">
             <div className="min-w-0 flex-1 space-y-1">
               <Label htmlFor="comment" className="text-xs font-medium">
-                {t(needsLicenseBasis ? 'review.githubLicenseBasisLabel' : 'review.commentLabel')}
+                {t('review.commentLabel')}
               </Label>
               <Textarea
                 id="comment"
@@ -439,13 +412,12 @@ function ReviewDetailScreen({
               {t(`reviewWorkbench.approve.${reviewRequestKey(review, hasBaseline)}`)}
             </Button>
             </div>
-            {(isDocumentationUnverified || isComparisonUnverified || isApprovalBlockedByScanning || isApprovalBlockedByAvatar || isAvatarOverrideReasonRequired || needsLicenseBasis || (showRejectForm && !comment.trim())) && (
+            {(isDocumentationUnverified || isComparisonUnverified || isApprovalBlockedByScanning || isApprovalBlockedByAvatar || isAvatarOverrideReasonRequired || (showRejectForm && !comment.trim())) && (
               <div className="text-xs lg:max-w-52" role="status">
                 {(isDocumentationUnverified || isComparisonUnverified) && <p className="text-muted-foreground">{t('reviewWorkbench.approveContentUnavailable')}</p>}
                 {isApprovalBlockedByScanning && <p className="text-muted-foreground">{t('review.approveDisabledScanning')}</p>}
                 {isAvatarOverrideReasonRequired && <p className="text-muted-foreground">{t('review.avatarOverrideReason')}</p>}
                 {isApprovalBlockedByAvatar && <p className="text-muted-foreground">{t('review.approveDisabledAvatar')}</p>}
-                {needsLicenseBasis && <p className="text-amber-700 dark:text-amber-400">{t('review.githubLicenseBasisRequired')}</p>}
                 {showRejectForm && !comment.trim() && <p className="text-destructive">{t('review.rejectReasonRequired')}</p>}
               </div>
             )}

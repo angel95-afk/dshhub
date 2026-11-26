@@ -196,7 +196,6 @@ class GlobalExceptionHandlerTest {
     @Test
     void githubSyncStorageFailureOmitsUntrustedContentFromResponseAndLogs() {
         String marker = "GITHUB_SYNC_STORAGE_WITH_SKILL_BODY_AND_TOKEN";
-        when(request.getServletPath()).thenReturn("/internal/github-sync/v1/uploads/123/content");
         attachAppender();
 
         ResponseEntity<ApiResponse<Void>> response = handler.handleStorageAccess(

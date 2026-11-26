@@ -124,7 +124,7 @@ class RequestLoggingFilterTest {
     }
 
     @Test
-    void doFilterInternal_skipsGithubCredentialRoute() throws Exception {
+    void doFilterInternal_logsCredentialRouteWithoutLeakingQueryValues() throws Exception {
         RequestLoggingFilter filter = new RequestLoggingFilter();
         attachAppender();
         MockHttpServletRequest request = new MockHttpServletRequest(
@@ -135,7 +135,11 @@ class RequestLoggingFilterTest {
 
         filter.doFilter(request, new MockHttpServletResponse(), (req, res) -> {});
 
-        assertThat(loggedMessages()).isEmpty();
+        assertThat(loggedMessages()).singleElement()
+                .satisfies(message -> assertThat(message)
+                        .contains("GET /api/v1/admin/github-sync/credentials | 200")
+                        .doesNotContain("credential-value", "another-value", "third-value",
+                                "query-secret", "machine-secret"));
     }
 
     @Test

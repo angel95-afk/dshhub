@@ -20,10 +20,6 @@ export function compareSkillVersions(installedVersion: string, remoteVersion: st
  */
 export function classifySkillVersionChange(installedVersion: string, remoteVersion: string): SkillVersionChange {
   if (installedVersion === remoteVersion) return 'none'
-  // Registry-generated GitHub versions contain content hashes, not release chronology.
-  // Their ordering needs verified source evidence, as used by repository upgrades.
-  const githubVersion = /^0\.0\.0-g[0-9a-f]{40}(?:-[0-9a-f]{16})?$/
-  if (githubVersion.test(installedVersion) || githubVersion.test(remoteVersion)) return 'unknown'
   const order = compareSkillVersions(installedVersion, remoteVersion)
   if (order === 'same') return 'none'
   if (order === 'remote-older') return 'downgrade'

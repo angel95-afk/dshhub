@@ -727,17 +727,6 @@ describe('ReviewDetailPage', () => {
     expect(scrollToMock).toHaveBeenCalledTimes(1)
   })
 
-  it('moves the license shortcut focus to the source tab', () => {
-    const task = useReviewDetailMock() as { data: Record<string, unknown> }
-    useReviewDetailMock.mockReturnValue({ ...task, data: { ...task.data, originType: 'GITHUB_SYNC' } })
-    render(<ReviewDetailPage />)
-    const shortcut = screen.getByRole('button', { name: /review.githubLicenseStatus/ })
-    shortcut.focus()
-    fireEvent.click(shortcut)
-    expect(document.activeElement).toBe(screen.getByRole('tab', { name: 'review.tabSourceSecurity' }))
-    expect(scrollToMock).toHaveBeenCalledTimes(1)
-  })
-
   it('returns directly to the detail heading when reduced motion is requested', () => {
     matchMediaMock.mockReturnValue({ matches: true })
     render(<ReviewDetailPage />)

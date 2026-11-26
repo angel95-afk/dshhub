@@ -72,9 +72,7 @@ class ApiTokenCapabilityCatalogTest {
                         RouteSecurityPolicyRegistry.ApiTokenPolicy::requiredScope));
         requirements.forEach((key, scope) -> {
             if (key.contains("/api/web/")) {
-                String counterpart = key.equals("GET /api/web/github-repositories/*/install-plan")
-                        ? key.replace("/api/web/", "/api/cli/v1/")
-                        : key.replace("/api/web/", "/api/v1/");
+                String counterpart = key.replace("/api/web/", "/api/v1/");
                 assertEquals(scope, requirements.get(counterpart), key);
             }
         });
@@ -159,8 +157,6 @@ class ApiTokenCapabilityCatalogTest {
             keys.add("PUT " + prefix + "/skills/*/subscription");
             keys.add("DELETE " + prefix + "/skills/*/subscription");
         }
-        keys.add("GET /api/cli/v1/github-repositories/*/install-plan");
-        keys.add("GET /api/web/github-repositories/*/install-plan");
         return keys;
     }
 

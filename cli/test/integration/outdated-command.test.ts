@@ -196,23 +196,6 @@ describe('outdated command', () => {
     expect(help.stdout).toContain('skillhub outdated')
   })
 
-  test('does not silently hide a GitHub update because its hash sorts backwards', async () => {
-    const skill: FakeSkill = { namespace: 'github', slug: 'hash-skill',
-      version: `0.0.0-g${'b'.repeat(40)}-${'1'.repeat(16)}`, ...makeSkill('# hash skill') }
-    const { env, registry, cliEnv } = await setup([skill])
-    publish(skill, `0.0.0-g${'a'.repeat(40)}-${'2'.repeat(16)}`)
-    const before = await snapshotTree(env.home, env.cwd)
-    const downloads = registry.received.downloads
-    const result = await runCli(['outdated', '--registry', registry.url, '--json'], cliEnv, { cwd: env.cwd })
-    expect(result.exitCode).toBe(0)
-    expect(JSON.parse(result.stdout)).toMatchObject({
-      ok: true, summary: { checked: 1, outdated: 0, unknown: 1, failed: 0 },
-      items: [{ coordinate: '@github/hash-skill', change: 'unknown', remoteVersion: skill.version }]
-    })
-    expect(await snapshotTree(env.home, env.cwd)).toEqual(before)
-    expect(registry.received.downloads).toBe(downloads)
-  })
-
   test.each([['auth', 2], ['forbidden', 2], ['server_error', 1], ['rate_limited', 1]] as const)(
     'reports an incomplete %s lookup with a nonzero exit and unchanged files', async (failure, exitCode) => {
       const skill: FakeSkill = { namespace: 'team', slug: 'failed-skill', ...makeSkill('# skill') }

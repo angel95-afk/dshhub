@@ -93,22 +93,12 @@ public class GovernanceWorkflowAppService {
     }
 
     public PageResponse<ReviewTaskResponse> listReviewQueue(String status, Long namespaceId,
-            String query, String reviewKind, String originType, String scanVerdict, int page, int size,
+            String query, String reviewKind, String scanVerdict, int page, int size,
             String sortDirection, String userId, Map<Long, NamespaceRole> userNsRoles) {
         return reviewPortalAppService.listReviewQueue(status, namespaceId, query, reviewKind,
-                originType, scanVerdict, page, size, sortDirection, userId, userNsRoles);
+                scanVerdict, page, size, sortDirection, userId, userNsRoles);
     }
 
-    public PageResponse<ReviewTaskResponse> listSyncReviews(String status,
-                                                            Long namespaceId,
-                                                            int page,
-                                                            int size,
-                                                            String sortDirection,
-                                                            String userId,
-                                                            Map<Long, NamespaceRole> userNsRoles) {
-        return reviewPortalAppService.listSyncReviews(
-                status, namespaceId, page, size, sortDirection, userId, userNsRoles);
-    }
 
     public PageResponse<ReviewTaskResponse> listPendingReviews(Long namespaceId,
                                                                int page,

@@ -26,8 +26,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RequestLoggingFilter.class);
     private static final Set<String> SKIP_PREFIXES = Set.of(
-            "/actuator", "/favicon.ico", "/assets/", "/internal/github-sync/",
-            "/api/v1/admin/github-sync/credentials"
+            "/actuator", "/favicon.ico", "/assets/"
     );
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -73,3 +72,4 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     }
 
 }
+

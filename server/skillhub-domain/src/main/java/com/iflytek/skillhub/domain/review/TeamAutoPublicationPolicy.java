@@ -47,7 +47,7 @@ public class TeamAutoPublicationPolicy {
         if (!newSkill && skill.getVisibility() != SkillVisibility.NAMESPACE_ONLY) {
             return Optional.empty();
         }
-        if (skill.isGithubSyncManaged() || !submitterId.equals(skill.getOwnerId())) {
+        if (!submitterId.equals(skill.getOwnerId())) {
             return Optional.empty();
         }
         return activeGrant(namespace.getId(), submitterId);

@@ -9,8 +9,6 @@ import com.iflytek.skillhub.domain.skill.SkillVersion;
 import com.iflytek.skillhub.domain.skill.service.SkillDownloadService;
 import com.iflytek.skillhub.domain.skill.service.SkillQueryService;
 import com.iflytek.skillhub.dto.SkillSuiteReferenceResponse;
-import com.iflytek.skillhub.dto.GithubSkillSourceResponse;
-import com.iflytek.skillhub.repository.GithubSkillSourceQueryRepository;
 import com.iflytek.skillhub.service.SkillLabelAppService;
 import com.iflytek.skillhub.service.SkillSuiteAppService;
 import org.junit.jupiter.api.Test;
@@ -67,44 +65,31 @@ class SkillControllerTest {
     @MockBean
     private SkillSuiteAppService skillSuiteAppService;
 
-    @MockBean
-    private GithubSkillSourceQueryRepository githubSkillSourceQueryRepository;
-
     @Test
-    void getSkillDetailShouldExposeOnlyPublishedGithubSource() throws Exception {
+    void getSkillDetailShouldExposePublishedSkill() throws Exception {
         when(skillQueryService.getSkillDetail(eq("team"), eq("demo"), eq((String) null), eq(Map.of()), eq(Set.of())))
-                .thenReturn(publishedGithubSkill());
+                .thenReturn(publishedSkill());
         when(skillSuiteAppService.findVisibleMemberships(
                 eq(1L), eq((String) null), eq(Map.of()), anySet(), eq(0), eq(20)))
                 .thenReturn(new com.iflytek.skillhub.dto.PageResponse<>(List.of(), 0, 0, 20));
-        when(githubSkillSourceQueryRepository.findPublishedVersion(10L))
-                .thenReturn(Optional.of(new GithubSkillSourceResponse(
-                        "upstream", "skills", "agents/demo", "a".repeat(40),
-                        2, "PRESENT_UNCLASSIFIED", List.of(new GithubSkillSourceResponse.LicenseDocument(
-                        "REPOSITORY_ROOT", "LICENSE", true)))));
 
         mockMvc.perform(get("/api/web/skills/team/demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.webUrl").value(org.hamcrest.Matchers.nullValue()))
-                .andExpect(jsonPath("$.data.githubSource.ownerLogin").value("upstream"))
-                .andExpect(jsonPath("$.data.githubSource.skillPath").value("agents/demo"))
-                .andExpect(jsonPath("$.data.githubSource.commitSha").value("a".repeat(40)))
-                .andExpect(jsonPath("$.data.githubSource.licenseDocuments[0].path").value("LICENSE"))
-                .andExpect(jsonPath("$.data.githubSource.ingestionStatus").doesNotExist());
+                .andExpect(jsonPath("$.data.githubSource").doesNotExist());
     }
 
     @Test
-    void getSkillDetailShouldNotReadGithubSourceWhenTeamSkillIsForbidden() throws Exception {
+    void getSkillDetailShouldNotLeakDetailWhenTeamSkillIsForbidden() throws Exception {
         when(skillQueryService.getSkillDetail(eq("team"), eq("demo"), eq((String) null), eq(Map.of()), eq(Set.of())))
                 .thenThrow(new DomainForbiddenException("error.skill.access.denied", "demo"));
 
         mockMvc.perform(get("/api/web/skills/team/demo"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.data.githubSource").doesNotExist());
-        verifyNoInteractions(githubSkillSourceQueryRepository);
     }
 
-    private SkillQueryService.SkillDetailDTO publishedGithubSkill() {
+    private SkillQueryService.SkillDetailDTO publishedSkill() {
         return new SkillQueryService.SkillDetailDTO(
                 1L, "demo", "Demo", "owner-1", "Alice", "Synced skill",
                 "PRIVATE", "ACTIVE", 0L, 0, 0, null, 0, false, 1L,

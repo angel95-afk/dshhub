@@ -21,17 +21,6 @@ class RouteSecurityPolicyRegistryTest {
 
     private final RouteSecurityPolicyRegistry registry = new RouteSecurityPolicyRegistry();
 
-    @Test
-    void repositoryInstallPlansArePublicReadsButBearerTokensRequireReadCapability() {
-        for (String prefix : List.of("/api/web", "/api/cli/v1")) {
-            String route = prefix + "/github-repositories/42/install-plan";
-            assertEquals(RouteSecurityPolicyRegistry.AccessLevel.PERMIT_ALL, registry.accessLevel("GET", route));
-            assertTrue(registry.authorizeApiToken("GET", route, Set.of("skill:read")).allowed());
-            assertFalse(registry.authorizeApiToken("GET", route, Set.of("skill:submit")).allowed());
-            assertFalse(registry.authorizeApiToken("GET", route, Set.of()).allowed());
-            assertFalse(registry.authorizeApiToken("POST", route, ALL_SCOPES).allowed());
-        }
-    }
 
     @Test
     void teamAutoPublicationGrantsAreSessionOnlyForEveryTokenScope() {
@@ -155,14 +144,6 @@ class RouteSecurityPolicyRegistryTest {
         assertTrue(allowed.allowed());
     }
 
-    @Test
-    void githubRepositoryCatalog_allowsBrowsingWithoutAddingTokenRoutes() {
-        for (String path : List.of("/api/web/github-repositories", "/api/web/github-repositories/901",
-                "/api/web/github-repositories/901/snapshots/1/archive")) {
-            assertEquals(RouteSecurityPolicyRegistry.AccessLevel.PERMIT_ALL, registry.accessLevel("GET", path));
-            assertFalse(registry.authorizeApiToken("GET", path, Set.of("skill:read")).allowed());
-        }
-    }
 
     @Test
     void suiteRoutes_keepDiscoveryPublicAndProtectMutations() {

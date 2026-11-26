@@ -5,7 +5,6 @@ import com.iflytek.skillhub.domain.review.ReviewDecisionMethod;
 import com.iflytek.skillhub.domain.review.ReviewTaskRepository;
 import com.iflytek.skillhub.domain.review.ReviewTaskStatus;
 import com.iflytek.skillhub.domain.review.ReviewSubjectType;
-import com.iflytek.skillhub.domain.review.ReviewOriginType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -33,26 +32,6 @@ public interface ReviewTaskJpaRepository extends JpaRepository<ReviewTask, Long>
     @Override
     Optional<ReviewTask> findBySubjectTypeAndSubjectVersionIdAndStatus(
             ReviewSubjectType subjectType, Long subjectVersionId, ReviewTaskStatus status);
-
-    @Override
-    default Page<ReviewTask> findByStatus(ReviewTaskStatus status, Pageable pageable) {
-        return findByOriginTypeAndStatus(ReviewOriginType.USER, status, pageable);
-    }
-
-    @Override
-    default Page<ReviewTask> findByNamespaceIdAndStatus(Long namespaceId,
-                                                         ReviewTaskStatus status, Pageable pageable) {
-        return findByNamespaceIdAndOriginTypeAndStatus(namespaceId, ReviewOriginType.USER, status, pageable);
-    }
-
-    @Override
-    Page<ReviewTask> findByOriginTypeAndStatus(ReviewOriginType originType, ReviewTaskStatus status,
-                                               Pageable pageable);
-
-    @Override
-    Page<ReviewTask> findByNamespaceIdAndOriginTypeAndStatus(Long namespaceId,
-                                                              ReviewOriginType originType,
-                                                              ReviewTaskStatus status, Pageable pageable);
 
     Page<ReviewTask> findBySubmittedByAndStatus(String submittedBy, ReviewTaskStatus status, Pageable pageable);
 

@@ -517,7 +517,7 @@ CLI 重新登录不再获得 delete。需要远端删除时在 Web 自定义 Tok
 Bundle 在创建操作时持久化发起方式和能力快照；恢复与重试只沿用原授权，不继承 worker／重试者权限。
 历史空快照没有可关联操作 ID 的可靠授权证据，遇到 PRIVATE 确认保持 `BLOCKED_RETRYABLE`
 并标明来源不明。应重新创建明确授权的操作，不能通过重试补权。
-盘点依据见[Bundle 授权证据](../openspec/changes/split-api-token-skill-capabilities/bundle-authorization-inventory.md)。
+盘点依据见[Bundle 授权证据](../openspec/changes/archive/split-api-token-skill-capabilities/bundle-authorization-inventory.md)。
 
 ## 6. RBAC 授权判定
 

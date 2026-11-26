@@ -64,7 +64,7 @@ test('packaged examples participate in fingerprint and recovery ownership even w
 
 test('recognizes the normative protocol examples shared with server and schema checks', async () => {
   for (const name of ['skill-examples.valid.json', 'skill-examples.empty.json']) {
-    const content = await readFile(new URL('../../../../openspec/changes/add-dsh-native-plugin/contracts/' + name, import.meta.url))
+    const content = await readFile(new URL('../../../../openspec/changes/archive/add-dsh-native-plugin/contracts/' + name, import.meta.url))
     expect(parseSkillExamples(content)).toMatchObject({ state: 'ready' })
   }
 })

@@ -109,15 +109,9 @@ public class ReviewService {
                                    Set<String> platformRoles) {
         SkillVersion skillVersion = skillVersionRepository.findById(skillVersionId)
                 .orElseThrow(() -> new DomainNotFoundException("skill_version.not_found", skillVersionId));
-        if (skillVersion.getGithubSyncIngestionId() != null) {
-            throw new DomainBadRequestException("review.submit.githubSyncManaged", skillVersionId);
-        }
 
         Skill skill = skillRepository.findById(skillVersion.getSkillId())
                 .orElseThrow(() -> new DomainNotFoundException("skill.not_found", skillVersion.getSkillId()));
-        if (skill.isGithubSyncManaged()) {
-            throw new DomainBadRequestException("review.submit.githubSyncManaged", skillVersionId);
-        }
         Namespace namespace = namespaceRepository.findById(skill.getNamespaceId())
                 .orElseThrow(() -> new DomainNotFoundException("namespace.not_found", skill.getNamespaceId()));
         assertNamespaceActive(namespace);
@@ -165,15 +159,9 @@ public class ReviewService {
                                    Map<Long, NamespaceRole> userNamespaceRoles) {
         SkillVersion skillVersion = skillVersionRepository.findById(skillVersionId)
                 .orElseThrow(() -> new DomainNotFoundException("skill_version.not_found", skillVersionId));
-        if (skillVersion.getGithubSyncIngestionId() != null) {
-            throw new DomainBadRequestException("review.submit.githubSyncManaged", skillVersionId);
-        }
 
         Skill skill = skillRepository.findById(skillVersion.getSkillId())
                 .orElseThrow(() -> new DomainNotFoundException("skill.not_found", skillVersion.getSkillId()));
-        if (skill.isGithubSyncManaged()) {
-            throw new DomainBadRequestException("review.submit.githubSyncManaged", skillVersionId);
-        }
         Namespace namespace = namespaceRepository.findById(skill.getNamespaceId())
                 .orElseThrow(() -> new DomainNotFoundException("namespace.not_found", skill.getNamespaceId()));
         assertNamespaceActive(namespace);

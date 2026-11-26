@@ -26,7 +26,7 @@ export type RecommendationDisplay = {
 }
 function version(value: components['schemas']['SkillLifecycleVersionResponse'] | undefined) {
   return value && typeof value.id === 'number' && value.version && value.status
-    ? { id: value.id, version: value.version, status: value.status, displayName: value.displayName, summary: value.summary, syncRevision: value.syncRevision } : undefined
+    ? { id: value.id, version: value.version, status: value.status, displayName: value.displayName, summary: value.summary } : undefined
 }
 /** Adapt optional OpenAPI fields only after checking the card's identity requirements. */
 export function recommendationSkills(values: Summary[] | undefined): RecommendedSkill[] {

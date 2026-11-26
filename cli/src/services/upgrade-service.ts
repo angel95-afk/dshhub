@@ -23,7 +23,7 @@ export interface UpgradeSelectionOptions {
   force: boolean
   home?: string
   tokenForRegistry: (registry: string) => Promise<string | undefined>
-  /** Internal source adapter; a repository invocation supplies its already pinned releases. */
+  /** Internal source adapter; a caller can supply already pinned releases. */
   resolveVersion?: (item: InventoryItem) => Promise<ResolveResponse>
   /** Source-specific ordering; ordinary upgrades retain the SemVer comparator. */
   compareVersions?: (item: InventoryItem, resolved: ResolveResponse) => Promise<SkillVersionOrder>

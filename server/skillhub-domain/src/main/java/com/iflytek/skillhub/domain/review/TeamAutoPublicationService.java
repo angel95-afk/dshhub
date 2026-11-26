@@ -147,8 +147,6 @@ public class TeamAutoPublicationService {
             return Optional.of("ELIGIBILITY_CANCELLED");
         }
         if (task.getSubjectType() != ReviewSubjectType.SKILL_VERSION
-                || task.getOriginType() != ReviewOriginType.USER
-                || task.getGithubSyncIngestionId() != null
                 || task.getAvatarCandidateId() != null
                 || task.isAvatarRemoval()
                 || task.getRequestedVisibility() != null) {
@@ -169,7 +167,6 @@ public class TeamAutoPublicationService {
         if (skill == null
                 || skill.getStatus() != SkillStatus.ACTIVE
                 || skill.isHidden()
-                || skill.isGithubSyncManaged()
                 || skill.getVisibility() != SkillVisibility.NAMESPACE_ONLY
                 || !task.getSubmittedBy().equals(skill.getOwnerId())) {
             return Optional.of("SKILL_NOT_ELIGIBLE");
@@ -182,8 +179,7 @@ public class TeamAutoPublicationService {
         if (version == null
                 || !Objects.equals(version.getSkillId(), skill.getId())
                 || version.getStatus() != SkillVersionStatus.PENDING_REVIEW
-                || version.getRequestedVisibility() != SkillVisibility.NAMESPACE_ONLY
-                || version.getGithubSyncIngestionId() != null) {
+                || version.getRequestedVisibility() != SkillVisibility.NAMESPACE_ONLY) {
             return Optional.of("VERSION_NOT_ELIGIBLE");
         }
         if (isSuperseded(task, skill, version)) {

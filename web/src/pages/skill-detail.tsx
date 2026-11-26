@@ -19,7 +19,6 @@ import { InstallCommand } from '@/features/skill/install-command'
 import { ShareButton } from '@/features/skill/share-button'
 import { InstallForAgentButton } from '@/features/skill/install-for-agent-button'
 import { SkillLabelPanel } from '@/features/skill/skill-label-panel'
-import { GithubSkillSourceCard } from '@/features/skill/github-skill-source'
 import { ComplianceSnapshotPanel } from '@/features/skill/compliance-snapshot-panel'
 import {
   getOverviewCollapseMaxHeight,
@@ -1129,9 +1128,8 @@ export function SkillDetailPage() {
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-2">
                         <span className="font-semibold font-heading text-foreground flex items-center gap-2 flex-wrap min-w-0">
                           <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary text-sm font-mono">
-                            {version.syncRevision ? t('review.githubRevisionValue', { count: version.syncRevision }) : `v${version.version}`}
+                            {`v${version.version}`}
                           </span>
-                          {version.syncRevision && <span className="max-w-full break-all text-xs font-normal text-muted-foreground">{version.version}</span>}
                           {version.status && (
                             <span className="rounded-full border border-border/60 bg-secondary/40 px-2.5 py-0.5 text-xs text-muted-foreground">
                               {resolveVersionStatusLabel(version.status)}
@@ -1265,9 +1263,7 @@ export function SkillDetailPage() {
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">{t('skillDetail.version')}</div>
             <div className="max-w-[11rem] break-all text-right font-mono font-semibold leading-snug text-foreground">
-              {selectedVersionEntry ? selectedVersionEntry.syncRevision != null
-                ? t('review.githubRevisionValue', { count: selectedVersionEntry.syncRevision })
-                : `v${selectedVersionEntry.version}` : '—'}
+              {selectedVersionEntry ? `v${selectedVersionEntry.version}` : '—'}
             </div>
           </div>
 
@@ -1521,9 +1517,6 @@ export function SkillDetailPage() {
           isSuperAdmin={hasRole('SUPER_ADMIN')}
         />
 
-        {skill.githubSource && publishedVersion && (
-          <GithubSkillSourceCard source={skill.githubSource} version={publishedVersion.version} />
-        )}
 
         {skill.canManageLifecycle && (
           <Card className="p-5 space-y-3">

@@ -125,17 +125,17 @@ describe('shared console layout composition', () => {
     const view = render(<Layout />)
     const sidebar = screen.getByRole('complementary')
     expect(within(sidebar).queryByText('sidebar.governance')).toBeNull()
-    expect(within(sidebar).queryByText('sidebar.githubSync')).toBeNull()
     expect(within(sidebar).queryByText('sidebar.security')).toBeNull()
     roles = ['SKILL_ADMIN']
     canChangePassword = true
     view.rerender(<Layout />)
     expect(within(sidebar).getByText('sidebar.governance')).toBeTruthy()
-    expect(within(sidebar).queryByText('sidebar.githubSync')).toBeNull()
     expect(within(sidebar).getByText('sidebar.security')).toBeTruthy()
     roles = ['SUPER_ADMIN']
+    canChangePassword = false
     view.rerender(<Layout />)
-    expect(within(sidebar).getByText('sidebar.githubSync')).toBeTruthy()
+    expect(within(sidebar).getByText('sidebar.governance')).toBeTruthy()
+    expect(within(sidebar).queryByText('sidebar.githubSync')).toBeNull()
   })
 
   it('shows the unified review entry only for authorized namespace managers', () => {

@@ -25,15 +25,6 @@ public interface ReviewTaskRepository {
     }
     Page<ReviewTask> findByStatus(ReviewTaskStatus status, Pageable pageable);
     Page<ReviewTask> findByNamespaceIdAndStatus(Long namespaceId, ReviewTaskStatus status, Pageable pageable);
-    default Page<ReviewTask> findByOriginTypeAndStatus(ReviewOriginType originType,
-                                                       ReviewTaskStatus status, Pageable pageable) {
-        throw new UnsupportedOperationException("Origin-specific review queries are not supported");
-    }
-    default Page<ReviewTask> findByNamespaceIdAndOriginTypeAndStatus(Long namespaceId,
-                                                                      ReviewOriginType originType,
-                                                                      ReviewTaskStatus status, Pageable pageable) {
-        throw new UnsupportedOperationException("Origin-specific review queries are not supported");
-    }
     Page<ReviewTask> findBySubmittedByAndStatus(String submittedBy, ReviewTaskStatus status, Pageable pageable);
     List<ReviewTask> findBySubmittedByAndSkillIdAndSkillVersionOrderBySubmittedAtDescIdDesc(
             String submittedBy, Long skillId, String skillVersion);

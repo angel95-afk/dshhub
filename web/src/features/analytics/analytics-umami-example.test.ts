@@ -25,7 +25,7 @@ describe('production deployment defaults', () => {
     const overlay = readFileSync('../compose.release.analytics.yml', 'utf8')
     const collector = readFileSync('../compose.analytics-umami.yml', 'utf8')
     expect(release).toContain('${WEB_PORT:-80}:80')
-    expect(overlay).toContain('  web:\n    networks:\n      - default\n      - analytics')
+    expect(overlay).toMatch(/ {2}web:\r?\n {4}networks:\r?\n {6}- default\r?\n {6}- analytics/)
     expect(collector).toContain('    external: true')
     expect(collector).toContain('analytics_postgres_data')
   })
