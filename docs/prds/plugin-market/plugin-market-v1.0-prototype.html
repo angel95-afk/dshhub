@@ -728,15 +728,12 @@
                 <span class="tag-label">标签</span>
                 <div class="tag-list">
                   <button class="chip active" type="button" aria-pressed="true">全部</button>
-                  <button class="chip" type="button" aria-pressed="false">智能体</button>
-                  <button class="chip" type="button" aria-pressed="false">界面</button>
-                  <button class="chip" type="button" aria-pressed="false">记忆</button>
-                  <button class="chip" type="button" aria-pressed="false">通信</button>
-                  <button class="chip" type="button" aria-pressed="false">开发工具</button>
-                  <button class="chip" type="button" aria-pressed="false">搜索与知识</button>
-                  <button class="chip" type="button" aria-pressed="false">数据分析</button>
-                  <button class="chip" type="button" aria-pressed="false">安全</button>
-                  <button class="chip" type="button" aria-pressed="false">其他</button>
+                  <button class="chip" type="button" aria-pressed="false">办公效率</button>
+                  <button class="chip" type="button" aria-pressed="false">研发</button>
+                  <button class="chip" type="button" aria-pressed="false">学习</button>
+                  <button class="chip" type="button" aria-pressed="false">内容写作</button>
+                  <button class="chip" type="button" aria-pressed="false">资料研究</button>
+                  <button class="chip" type="button" aria-pressed="false">安全检查</button>
                 </div>
               </div>
             </section>
@@ -827,7 +824,7 @@
     <ol class="notes">
       <li><b>01</b> 索引源区必须显示完整绝对地址，子路径部署时不得丢 base path</li>
       <li><b>02</b> 市场页只有上下平铺两段；提示词按插件生成，只放在详情页（见 S04）</li>
-      <li><b>03</b> 9 个分类对齐 dsh-hub；分类 id 用 ASCII，界面走 i18n</li>
+      <li><b>03</b> 筛选标签与技能市场<b>同一套词表</b>（接口同一个 <code>GET /labels</code>，只出「可见标签」），不另造插件分类；词表由运营维护、可增删，界面文案走 i18n</li>
       <li><b>04</b> 卡片计数是「复制提示词次数」，刻意不叫"安装量"</li>
       <li><b>05</b> 索引为空时，列表区显示空态但索引源区仍可用</li>
       <li><b>06</b> 「我的插件」「提交插件」并列，与技能市场的「我的技能」「发布技能」同构；未登录均不渲染</li>
@@ -866,7 +863,8 @@
               <div class="sub">
                 <span class="mono" style="font-size:12px;background:#F6F7F9;border:1px solid var(--line-soft);border-radius:5px;padding:1px 6px">dsh-ops</span>
                 <button class="btn btn-sm btn-ghost">⧉ 复制包名</button>
-                <span class="badge">开发工具</span>
+                <span class="badge">办公效率</span>
+                <span class="badge">研发</span>
                 <span class="muted">·</span><span>team</span>
                 <span class="muted">·</span><span>更新于 2026-11-18</span>
                 <span class="muted">·</span><span>⧉ 复制提示词 128 次</span>
@@ -918,6 +916,7 @@
       <li><b>04</b> README 与该版本绑定；页面不提供切换版本，正文与安装永远对应当前最新版本（PRD §5.1）</li>
       <li><b>05</b> npm 来源无版本输入框：版本由服务端取最新非预发布版本并提交时冻结，任何途径传入版本都不受理（PRD §6.3）</li>
       <li><b>06</b> 提示词里的版本段由服务端在<strong>复制那一刻</strong>取最新已上架版本，前端不拼、不替换；版本列表只用于回溯，不提供逐版本安装（PRD §5.1 / §5.2）</li>
+      <li><b>07</b> 头部标签与技能市场<b>同一套词表</b>（<code>GET /labels</code> 的可见标签），一个插件可挂多个；<b>提交时选不了</b>，上架后由作者或空间管理员在标签面板挂摘，超管另可挂特权标签（与技能侧 <code>skill-label-panel</code> 一致，PRD §8.3）</li>
     </ol>
   </section>
 
@@ -927,7 +926,7 @@
       <span class="no">S05</span>
       <h2>提交插件</h2>
       <span class="path">/dashboard/plugins/submit · PRD §6</span>
-      <p class="desc">四种提交来源收敛为两条分发路径；表单以自动解析为主，人工只选四样（命名空间、可见范围、来源、分类；显示名称默认取包内名称、可改，另计）。右栏为常驻「发布设置」区，与技能发布页同构；校验清单就近放在「可见范围」下方。提交与技能发布页一致，是两步：页脚「下一步：确认」→ 「确认提交信息」弹窗再确认。页面属于控制台布局，左侧导航常驻。</p>
+      <p class="desc">四种提交来源收敛为两条分发路径；表单以自动解析为主，人工只选三样（命名空间、可见范围、来源；显示名称默认取包内名称、可改，另计）。<strong>提交页不选标签</strong>——标签与技能侧同源同用法，上架后由作者或空间管理员在插件详情页挂摘。右栏为常驻「发布设置」区，与技能发布页同构；校验清单就近放在「可见范围」下方。提交与技能发布页一致，是两步：页脚「下一步：确认」→ 「确认提交信息」弹窗再确认。页面属于控制台布局，左侧导航常驻。</p>
     </div>
 
     <div class="browser">
@@ -1035,14 +1034,6 @@
                   <label for="displayName">显示名称</label>
                   <input class="input" id="displayName" value="Ops 工具集" placeholder="默认读取包内名称" />
                   <div class="help">默认读取包内名称；留空时使用插件包名称。</div>
-                </div>
-
-                <div class="field" style="margin-top:18px">
-                  <label>标签<span class="req">*</span></label>
-                  <div style="display:flex;gap:6px;flex-wrap:wrap">
-                    <span class="chip active">智能体</span><span class="chip">界面</span><span class="chip">记忆</span><span class="chip">通信</span>
-                    <span class="chip active">开发工具</span><span class="chip">搜索与知识</span><span class="chip">数据分析</span><span class="chip">安全</span><span class="chip">其他</span>
-                  </div>
                 </div>
 
                 <div class="auto" style="margin-top:20px">
@@ -1254,7 +1245,8 @@
                     <span class="s06-meta-item s06-coord" title="@team/dsh-ops"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path></svg><span>@team/dsh-ops</span></span>
                     <span class="s06-meta-item" title="可见性：公开"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>公开</span>
                     <span class="s06-meta-item s06-ver">v1.4.0</span>
-                    <span class="s06-meta-item">开发工具</span>
+                    <span class="s06-meta-item">办公效率</span>
+                    <span class="s06-meta-item">研发</span>
                     <span class="s06-meta-item" title="复制提示词 128 次"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>复制 128</span>
                   </div>
                 </div>
@@ -1277,7 +1269,7 @@
                     <span class="s06-meta-item s06-coord" title="@team/dsh-context"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path></svg><span>@team/dsh-context</span></span>
                     <span class="s06-meta-item" title="可见性：公开"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>公开</span>
                     <span class="s06-meta-item s06-ver">v1.0.0</span>
-                    <span class="s06-meta-item">记忆</span>
+                    <span class="s06-meta-item">资料研究</span>
                     <span class="s06-meta-item" title="复制提示词 74 次"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>复制 74</span>
                   </div>
                 </div>
@@ -1301,7 +1293,7 @@
                     <span class="s06-meta-item s06-coord" title="dsh-workspace-snap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path></svg><span>dsh-workspace-snap</span></span>
                     <span class="s06-meta-item" title="可见性：公开"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>公开</span>
                     <span class="s06-meta-item s06-ver">v0.2.0</span>
-                    <span class="s06-meta-item">开发工具</span>
+                    <span class="s06-meta-item">研发</span>
                     <span class="s06-meta-item" title="复制提示词 22 次"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>复制 22</span>
                   </div>
                 </div>
@@ -1324,7 +1316,7 @@
                     <span class="s06-meta-item s06-coord" title="@team/dsh-theme-legacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path></svg><span>@team/dsh-theme-legacy</span></span>
                     <span class="s06-meta-item" title="可见性：公开"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>公开</span>
                     <span class="s06-meta-item s06-ver">v0.1.3</span>
-                    <span class="s06-meta-item">界面</span>
+                    <span class="s06-meta-item">办公效率</span>
                     <span class="s06-meta-item" title="复制提示词 12 次"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>复制 12</span>
                   </div>
                 </div>
@@ -1356,7 +1348,7 @@
       <span class="no">S07</span>
       <h2>命名空间 · 插件管理</h2>
       <span class="path">/dashboard/namespaces/test/plugins · PRD §3.4</span>
-      <p class="desc">命名空间详情新增「插件」tab（排在技能之后）：空间成员看本空间全部插件，ADMIN 直接处理下架、分类、重扫。</p>
+      <p class="desc">命名空间详情新增「插件」tab（排在技能之后）：空间成员看本空间全部插件，ADMIN 直接处理下架、标签、重扫。</p>
     </div>
 
     <div class="browser">
@@ -1425,12 +1417,12 @@
               <div style="display:flex;gap:8px;align-items:center;margin:16px 0 14px">
                 <div class="search" style="width:260px"><span class="ico">⌕</span>搜索标题或 npm 包名…</div>
                 <button class="btn btn-sm">全部状态 ▾</button>
-                <button class="btn btn-sm">全部分类 ▾</button>
+                <button class="btn btn-sm">全部标签 ▾</button>
                 <span style="margin-left:auto;font-size:12px;color:var(--text-3)">共 4 个插件</span>
               </div>
 
               <div class="table">
-                <div class="tr tr-ns th"><span>插件</span><span>版本</span><span>状态</span><span>分类</span><span>裁决</span><span>操作</span></div>
+                <div class="tr tr-ns th"><span>插件</span><span>版本</span><span>状态</span><span>标签</span><span>裁决</span><span>操作</span></div>
 
                 <div class="tr tr-ns">
                   <div class="nm"><div class="picon" style="background:var(--chip);color:var(--text-2)">O</div>
@@ -1438,7 +1430,7 @@
                   </div>
                   <span class="mono">1.4.0</span>
                   <span><span class="badge badge-ok">已上架</span></span>
-                  <span class="muted">开发工具</span>
+                  <span class="muted">办公效率、研发</span>
                   <span><span class="badge">未检出</span></span>
                   <span class="ops"><button class="btn btn-sm">查看</button><button class="btn btn-sm btn-ghost">下架</button></span>
                 </div>
@@ -1449,7 +1441,7 @@
                   </div>
                   <span class="mono">1.0.0</span>
                   <span><span class="badge badge-warn">待审核</span></span>
-                  <span class="muted">记忆</span>
+                  <span class="muted">资料研究</span>
                   <span><span class="badge badge-warn">需确认</span></span>
                   <span class="ops"><button class="btn btn-sm">审阅</button><button class="btn btn-sm btn-ghost">撤回</button></span>
                 </div>
@@ -1460,7 +1452,7 @@
                   </div>
                   <span class="mono">0.2.0</span>
                   <span><span class="badge" style="background:#FDECEC;color:var(--danger)">已拒绝</span></span>
-                  <span class="muted">开发工具</span>
+                  <span class="muted">研发</span>
                   <span><span class="badge" style="background:#FDECEC;color:var(--danger)">有红线</span></span>
                   <span class="ops"><button class="btn btn-sm">看原因</button><button class="btn btn-sm btn-ghost">重新提交</button></span>
                 </div>
@@ -1471,7 +1463,7 @@
                   </div>
                   <span class="mono">0.1.3</span>
                   <span><span class="badge">已下架</span></span>
-                  <span class="muted">界面</span>
+                  <span class="muted">办公效率</span>
                   <span><span class="badge">未检出</span></span>
                   <span class="ops"><button class="btn btn-sm">恢复上架</button><button class="btn btn-sm btn-ghost">详情</button></span>
                 </div>
@@ -1490,7 +1482,7 @@
     <ol class="notes">
       <li><b>01</b> tab 顺序：技能 / 插件 / 成员 / 审核 / 设置；成员仅团队空间、审核按权限显示</li>
       <li><b>02</b> 列表含 PENDING / REJECTED / HIDDEN，不是只看已上架</li>
-      <li><b>03</b> 下架、恢复、改分类、重扫只对空间 ADMIN 渲染；MEMBER 只读</li>
+      <li><b>03</b> 下架、恢复、改标签、重扫只对空间 ADMIN 渲染；MEMBER 只读</li>
       <li><b>04</b> 「提交插件」带 <code>?namespace=test</code> 预填，少一步选择</li>
       <li><b>05</b> 与「我的插件」共用同一表格组件，差别只在数据范围与操作列</li>
       <li><b>06</b> 非空间成员访问该路由返回 403 / 空态，不泄漏插件清单</li>
@@ -1865,7 +1857,7 @@
   });
   syncChecks('npm');
 
-  // 分类 chip 单选
+  // 标签 chip 单选
   document.querySelectorAll('.module').forEach(function (mod) {
     var chips = mod.querySelectorAll('.chip');
     chips.forEach(function (chip) {

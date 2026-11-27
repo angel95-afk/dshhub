@@ -12,7 +12,7 @@
 | `POST .../rescan` | `plugin-rescan` | 5 | — | 3600s / 版本（业务层再断言一次） |
 | `POST /plugins/{ns}/{slug}/report` | `plugin-report` | 5 | — | 3600s / 用户 |
 | `POST .../versions/{v}/yank`、`.../delete`、`.../release-name`、`.../publish` | `plugin-lifecycle` | 20 | — | 3600s / 用户（`publish` 重试同一版本 60s 内只允许 3 次，避免把私服打穿） |
-| `PATCH /plugins/{ns}/{slug}/visibility` | `plugin-lifecycle` | 20 | — | 3600s / 用户（**并入 `plugin-lifecycle`，不新增 category**：缩窄可见范围是低频治理动作，与改分类 / 下架 / 撤版同族；多开一类只会多一处要调的阈值，排障时也会把同类治理动作打散到两个计数器里） |
+| `PATCH /plugins/{ns}/{slug}/visibility` | `plugin-lifecycle` | 20 | — | 3600s / 用户（**并入 `plugin-lifecycle`，不新增 category**：缩窄可见范围是低频治理动作，与挂 / 摘标签、下架、撤版同族；多开一类只会多一处要调的阈值，排障时也会把同类治理动作打散到两个计数器里） |
 | `POST /plugins/git/preflight` | `plugin-git-preflight` | 10 | — | 60s / 用户（预检会打到内网 Git，必须限流） |
 | `GET /plugins/submissions/{id}/files` | `plugin-submission-files` | 60 | — | 60s / 用户（一次审核通常只拉 1–2 次；上限主要防脚本枚举包结构与探测提交 id） |
 | `GET /plugins/submissions/{id}/files/content` | `plugin-submission-file-content` | 120 | — | 60s / 用户（翻一个目录树会连点十几下，量级必须比清单高，否则正常审核会被 429 打断） |

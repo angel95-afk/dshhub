@@ -19,7 +19,7 @@ sequenceDiagram
     participant Q as PluginSubmissionRepository
     participant A as AuditLogService
 
-    U->>W: 第一步：选命名空间 / 可见范围 / 来源 / 分类，填表
+    U->>W: 第一步：选命名空间 / 可见范围 / 来源，填显示名称（**没有标签字段**：标签与技能侧同源，上架后在详情页挂，PRD §6.3/§8.3 v2.21）
     U->>W: 点「下一步：确认」→ 打开 ConfirmSubmitDialog（与技能发布页同款五行：显示名称 / @namespace/name@version / 可见性 / 简介 / 末行审核说明文案；可见性与表单联动）
     Note over W: 产品契约（PRD §6.3 v2.19 ⑨）：此时**不发任何请求、不产生受理记录、不改变状态**；「返回编辑」放弃本次确认回到表单。只有点弹窗的「确认发布」才往下走
     U->>W: 点「确认发布」（primary）→ 真正提交

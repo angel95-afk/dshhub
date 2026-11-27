@@ -13,13 +13,13 @@
 - 高位段：守卫的 `FORK_VERSION_FLOOR = 10000`，高位段只要求"无重复"（`highBand.distinct().count() == size`），**允许跳号**。已占用 `V10000`（`remove-github-sync`）。
 - 因此本变更只占一个号：**`V10001`**。不预留号段：仓库内没有任何号段预留约定，预留只在多个 fork 变更并行改迁移时才成立，本变更独占推进，空 100 个号只增加解释成本。若将来出现并行变更，各自取下一个可用高位号即可（高位段不要求连续）。
 
-文件粒度：**单文件**。9 张新表 + 循环外键 + seed + `review_task` 索引全部在一个文件内完成。理由是 Flyway 按文件提交事务：拆成多个文件时第 N 个失败会留下前 N-1 个已提交的半套 schema，必须 `flyway repair` 手工收敛；单文件让全新域的空库迁移要么全有、要么全无。循环外键在单文件内同样可解——先建两张表、再用 `ALTER TABLE ... ADD CONSTRAINT` 补约束。
+文件粒度：**单文件**。10 张新表 + 循环外键 + seed + `review_task` 索引全部在一个文件内完成。理由是 Flyway 按文件提交事务：拆成多个文件时第 N 个失败会留下前 N-1 个已提交的半套 schema，必须 `flyway repair` 手工收敛；单文件让全新域的空库迁移要么全有、要么全无。循环外键在单文件内同样可解——先建两张表、再用 `ALTER TABLE ... ADD CONSTRAINT` 补约束。
 
 | 顺序 | 文件 | 内容 | 依赖 |
 |---|---|---|---|
-| 1 | `V10001__plugin_market.sql` | 9 张表 + 循环 FK（建表后 ALTER 补）+ `plugin_index_state` seed + `review_task` 部分唯一索引与注释 | `namespace`、`review_task` |
+| 1 | `V10001__plugin_market.sql` | 10 张表 + 循环 FK（建表后 ALTER 补）+ `plugin_index_state` seed + `review_task` 部分唯一索引与注释 | `namespace`、`review_task` |
 
-文件内顺序不可调换：`plugin` 先于 `plugin_version`；`plugin_scan_report` 先建表（`plugin_submission_id` 暂不加内联 FK），等 `plugin_submission` 建表后用 `ALTER` 补双向 FK；`plugin_scan_waiver` 依赖 `plugin_submission`；`plugin_report` 只依赖 `plugin`，放在 `review_task` 索引之前；`review_task` 的索引放在最后。空库从 V1 全量执行到 `V10001` 必须成功；`dirty` seed 值取 `TRUE`，让首次启动就生成一份合法的空索引。
+文件内顺序不可调换：`plugin` 先于 `plugin_label` 与 `plugin_version`；`plugin_scan_report` 先建表（`plugin_submission_id` 暂不加内联 FK），等 `plugin_submission` 建表后用 `ALTER` 补双向 FK；`plugin_scan_waiver` 依赖 `plugin_submission`；`plugin_report` 只依赖 `plugin`，放在 `review_task` 索引之前；`review_task` 的索引放在最后。空库从 V1 全量执行到 `V10001` 必须成功；`dirty` seed 值取 `TRUE`，让首次启动就生成一份合法的空索引。
 
 ### 6.2 DDL（可直接执行）
 
@@ -32,7 +32,6 @@ CREATE TABLE plugin (
     namespace_id        BIGINT         NOT NULL REFERENCES namespace(id),
     slug                VARCHAR(64)    NOT NULL,
     package_name        VARCHAR(214)   NOT NULL,
-    category            VARCHAR(32)    NOT NULL,
     title_zh            VARCHAR(200),
     title_en            VARCHAR(200),
     summary_zh          TEXT,
@@ -64,9 +63,6 @@ CREATE TABLE plugin (
     updated_by          VARCHAR(255),
     CONSTRAINT ck_plugin_status CHECK (status IN ('DRAFT', 'PENDING', 'LISTED', 'HIDDEN', 'BLOCKED', 'REMOVED')),
     CONSTRAINT ck_plugin_visibility CHECK (visibility IN ('PUBLIC', 'NAMESPACE_ONLY', 'PRIVATE')),
-    CONSTRAINT ck_plugin_category CHECK (category IN (
-        'agent', 'ui', 'memory', 'communication', 'devtools',
-        'search-knowledge', 'data', 'security', 'other')),
     CONSTRAINT ck_plugin_scan_verdict CHECK (latest_scan_verdict IS NULL
         OR latest_scan_verdict IN ('clear', 'review', 'red')),
     CONSTRAINT ck_plugin_block CHECK (
@@ -97,9 +93,27 @@ COMMENT ON COLUMN plugin.visibility IS '可见范围三档（`PRD §6.3` v2.16�
 CREATE UNIQUE INDEX uq_plugin_package_name_active ON plugin (package_name) WHERE name_released_at IS NULL;
 CREATE UNIQUE INDEX uq_plugin_namespace_slug_active ON plugin (namespace_id, slug) WHERE name_released_at IS NULL;
 
-CREATE INDEX idx_plugin_listed ON plugin (category, updated_at DESC) WHERE status = 'LISTED';
+CREATE INDEX idx_plugin_listed ON plugin (updated_at DESC) WHERE status = 'LISTED';
 CREATE INDEX idx_plugin_namespace_status ON plugin (namespace_id, status);
 CREATE INDEX idx_plugin_search_vector ON plugin USING GIN (search_vector);
+
+-- ============ 1b. plugin_label（插件 ↔ 标签，多对多；复用技能侧词表） ============
+-- 词表是既有的 label_definition / label_translation，**不新建插件专用词表**（PRD §8.3 v2.21）。
+-- 结构与 skill_label 同构：一个插件可挂多个标签，一个标签下可有多个插件。
+CREATE TABLE plugin_label (
+    id                  BIGSERIAL      PRIMARY KEY,
+    plugin_id           BIGINT         NOT NULL REFERENCES plugin(id) ON DELETE CASCADE,
+    label_id            BIGINT         NOT NULL REFERENCES label_definition(id) ON DELETE CASCADE,
+    created_by          VARCHAR(128)   REFERENCES user_account(id),
+    created_at          TIMESTAMPTZ    NOT NULL DEFAULT now(),
+    CONSTRAINT uq_plugin_label UNIQUE (plugin_id, label_id)
+);
+
+COMMENT ON TABLE plugin_label IS '插件与标签的多对多关联。标签词表与技能共用 label_definition，插件侧不建副本、不硬编码 slug（PRD §8.3 v2.21）。提交表单不含标签，挂摘发生在详情页标签面板';
+COMMENT ON COLUMN plugin_label.created_by IS '执行挂载的人；摘除即删行，历史留审计表而非本表';
+
+CREATE INDEX idx_plugin_label_plugin_id ON plugin_label (plugin_id);
+CREATE INDEX idx_plugin_label_label_id ON plugin_label (label_id);
 
 -- ============ 2. plugin_version ============
 CREATE TABLE plugin_version (
@@ -235,7 +249,6 @@ CREATE TABLE plugin_submission (
     status              VARCHAR(24)    NOT NULL,
     package_name        VARCHAR(214)   NOT NULL,
     version             VARCHAR(64)    NOT NULL,
-    category            VARCHAR(32)    NOT NULL,
     plugin_id           BIGINT         REFERENCES plugin(id),
     plugin_version_id   BIGINT         REFERENCES plugin_version(id),
     source_payload      JSONB          NOT NULL DEFAULT '{}'::jsonb,
@@ -257,9 +270,6 @@ CREATE TABLE plugin_submission (
         'RECEIVED', 'MATERIALIZING', 'SCANNING', 'SCAN_RED',
         'REVIEW_PENDING', 'PUBLISHING', 'LISTED', 'SCAN_FAILED',
         'REVIEW_REJECTED', 'PUBLISH_FAILED', 'VALIDATION_FAILED', 'CANCELED')),
-    CONSTRAINT ck_plugin_submission_category CHECK (category IN (
-        'agent', 'ui', 'memory', 'communication', 'devtools',
-        'search-knowledge', 'data', 'security', 'other')),
     CONSTRAINT ck_plugin_submission_verdict CHECK (verdict IS NULL
         OR verdict IN ('clear', 'review', 'red')),
     CONSTRAINT ck_plugin_submission_attempts CHECK (attempt_count >= 0),

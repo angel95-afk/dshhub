@@ -54,7 +54,7 @@ sequenceDiagram
 - **单行状态 + `gen` 自增**是抖动合并机制：N 次状态变化只产出 1 份索引（第二次循环读到的就是最新数据）。
 - **没有 ShedLock**：`UPDATE ... WHERE dirty AND lease 过期 RETURNING` 在单行上天然互斥，多副本安全。
 - **失败不推进指针**：可用性优先（PRD §8.6），`current_key` 保持上一版，DSH 继续拿到旧索引而不是 5xx。
-- `dirty` 的置位点：版本/插件状态变化、分类修改、下架/恢复、放行、重扫结论变化、图标更新。全部走同一 `PluginIndexService.markDirty()`，**不订阅进程内事件**（多副本下不可靠）。
+- `dirty` 的置位点：版本/插件状态变化、**标签挂摘**、下架/恢复、放行、重扫结论变化、图标更新。全部走同一 `PluginIndexService.markDirty()`，**不订阅进程内事件**（多副本下不可靠）。
 
 ### 4.4 `/dsh/index.json` 读取与 304
 

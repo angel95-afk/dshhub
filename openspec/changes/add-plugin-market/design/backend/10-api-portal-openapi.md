@@ -111,20 +111,19 @@ paths:
             examples:
               npm:
                 summary: npm 来源（visibility 必填、无默认）
-                value: { namespace: team-a, visibility: PUBLIC, sourceType: npm, category: devtools, packageName: '@team/bar' }
+                value: { namespace: team-a, visibility: PUBLIC, sourceType: npm, packageName: '@team/bar' }
               git:
                 summary: Git 来源（可见范围同样必填，这里选仅命名空间）
-                value: { namespace: team-a, visibility: NAMESPACE_ONLY, sourceType: git, category: devtools, url: 'git@git.internal:group/dsh-plugin-bar.git' }
+                value: { namespace: team-a, visibility: NAMESPACE_ONLY, sourceType: git, url: 'git@git.internal:group/dsh-plugin-bar.git' }
           multipart/form-data:
             schema:
               type: object
-              required: [namespace, visibility, sourceType, category, package]
+              required: [namespace, visibility, sourceType, package]
               properties:
                 namespace: { type: string }
                 visibility:
                   $ref: '#/components/schemas/PluginVisibility'
                 sourceType: { type: string, enum: [zip, folder] }
-                category: { $ref: '#/components/schemas/PluginCategory' }
                 package: { type: string, format: binary, description: 'zip ≤ 50 MiB；folder 由前端打包为 zip 后走同一字段' }
       responses:
         '202':
@@ -305,7 +304,7 @@ paths:
         - { name: q, in: query, schema: { type: string } }
         - { name: status, in: query, schema: { type: string, enum: [DRAFT, PENDING, LISTED, HIDDEN, BLOCKED, REMOVED] } }
         - { name: namespace, in: query, schema: { type: string } }
-        - { name: category, in: query, schema: { $ref: '#/components/schemas/PluginCategory' } }
+        - { name: label, in: query, schema: { $ref: '#/components/schemas/PluginLabelSlug' }, description: '标签 slug 单选；与技能市场同一套词表' }
         - { name: verdict, in: query, schema: { type: string, enum: [clear, review, red] } }
         - { name: page, in: query, schema: { type: integer, default: 0 } }
         - { name: size, in: query, schema: { type: integer, default: 20 } }
@@ -336,20 +335,23 @@ paths:
         '200': { description: 该空间全部插件（含待审/拒绝/下架） }
         '403': { $ref: '#/components/responses/PluginError' }
 
-  /api/v1/plugins/{namespace}/{slug}:
-    patch:
+  /api/v1/plugins/{namespace}/{slug}/labels/{labelSlug}:
+    put:
       security: [{ sessionCookie: [] }]
-      description: 改分类（空间 ADMIN 或作者）；上架后可改，改后触发索引重建
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [category]
-              properties:
-                category: { $ref: '#/components/schemas/PluginCategory' }
+      description: >-
+        挂标签（v2.21 替代原「改分类」端点）。权限：插件作者本人 / 空间 ADMIN / SUPER_ADMIN 可挂 `RECOMMENDED`；
+        `PRIVILEGED` 仅 `SUPER_ADMIN` 可挂（判定复用技能侧 `canManageLabelType`）。
+        标签候选来自 `GET /api/v1/labels`（与技能市场同一套词表），**客户端不能凭 slug 自造标签**——不在词表内返回 404。
+        挂载触发索引重建、写审计、刷新 `updated_at`。幂等：重复挂同标签返回 204 不报错。
       responses:
-        '200': { description: 已更新 }
+        '204': { description: 已挂载 }
+        '403': { $ref: '#/components/responses/PluginError' }
+        '404': { $ref: '#/components/responses/PluginError' }
+    delete:
+      security: [{ sessionCookie: [] }]
+      description: 摘标签（权限同上）；触发索引重建、写审计、刷新 `updated_at`。幂等：摘不存在的标签返回 204。
+      responses:
+        '204': { description: 已摘除 }
         '403': { $ref: '#/components/responses/PluginError' }
 
   /api/v1/plugins/{namespace}/{slug}/visibility:
@@ -362,9 +364,9 @@ paths:
         任何**变宽**方向（`PRIVATE → *`、`NAMESPACE_ONLY → PUBLIC`、以及同值重复提交视为无变更 → 200 幂等）一律
         409 `PLUGIN_CONFLICT_VISIBILITY_WIDEN_PENDING` + 固定文案「v1 不支持放宽可见范围，如需放宽请重新提交」——
         产品侧 `PRD v2.17` 已明确"放宽没有单改入口、只能随新版本提交"，因此这里只拒绝不受理（不为此新增插件级审核主题，见 §13 #22、§14.2 Q11 已裁）。
-        权限与"改分类"同级：插件作者本人 + 该空间空间管理员；其他空间成员与非成员 403 `plugin.error.noPermission`。
-        与既有 `PATCH /plugins/{ns}/{slug}`（改分类）**分开**：两个动作的权限相同但后果不同（可见范围会改变索引收录与访问可见性），
-        合并成一个端点会让"只改分类"的调用方意外触发可见性变更。
+        权限与"挂 / 摘标签"同级：插件作者本人 + 该空间空间管理员；其他空间成员与非成员 403 `plugin.error.noPermission`。
+        与 `PUT|DELETE /plugins/{ns}/{slug}/labels/{labelSlug}`（挂 / 摘标签）**分开**：两个动作的权限相同但后果不同（可见范围会改变索引收录与访问可见性），
+        合并会让"只想调标签"的调用方意外触发可见性变更。
       requestBody:
         content:
           application/json:

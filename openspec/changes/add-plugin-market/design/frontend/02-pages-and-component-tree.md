@@ -14,16 +14,17 @@ pages/plugins.tsx
 │   └── IndexStatusHint         (加载中/失败/空/正常 四态)
 └── PluginGridSection           (`PRD §4.2`「插件列表」段；平铺两段中的第二段)
 ├── PluginToolbar           (搜索 debounce 300ms + 「仅看收藏」开关 + 排序「最新 / 名称 A→Z / 复制最多」+ 结果数；默认排序仍为发布时间倒序，PRD §4.2 v2.20 ④)
-├── PluginCategoryChips     (9 类 + 全部)
-├── PluginGrid → PluginCard (图标/标题/包名/简介/分类/版本/复制次数；**复制次数与详情页同源、可展示，不显示浏览数、不放「复制提示词」按钮**，PRD §4.2/§10/§11 验收 2·4·22 v2.19 ①；**v2.20 ② 起不展示任何扫描裁决徽标**——用户侧不做披露)
+├── PluginLabelChips     (「全部」+ 可见标签；候选取 `GET /api/v1/labels`，与技能市场同一套词表，单选。**不设插件自建分类**，PRD §8.3 v2.21)
+├── PluginGrid → PluginCard (图标/标题/包名/简介/版本/复制次数；**卡片不渲染标签徽标**，与技能市场卡片现状一致，PRD §4.2 v2.21；**复制次数与详情页同源、可展示，不显示浏览数、不放「复制提示词」按钮**，PRD §4.2/§10/§11 验收 2·4·22 v2.19 ①；**v2.20 ② 起不展示任何扫描裁决徽标**——用户侧不做披露)
     └── LoadMoreButton
 
 pages/plugin-detail.tsx
-├── PluginDetailHeader          (图标/标题/包名复制/分类/作者/版本/更新时间/复制次数)
+├── PluginDetailHeader          (图标/标题/包名复制/标签（可多个，无标签时不占位）/作者/版本/更新时间/复制次数)
 │   ├── VisibilityStatusBadge   (状态文案三档：`NAMESPACE_ONLY`→「仅命名空间」、`PRIVATE`→「私有」、私有空间→「已通过（仅空间内可见）」、否则「已上架」；**由 DTO 的 `visibility` + `namespaceIsPublic` 判定**（§8.4、§16 S24），前端不按空间猜)
 │   └── PluginReportEntry       (举报入口：文字按钮「举报」+ 图标；登录才渲染，匿名点击走登录并回跳本页)
 ├── (已删除) VerdictBadgeLine    (**v2.20 ② 起用户侧不展示任何裁决徽标**——产品目标 4 删除、用户侧本期不做披露；裁决与理由摘要只在提交者 / 治理侧可见，PRD §1.1/§1.2/§7)
 ├── VisibilityNoticeLine        (稳定说明句：仅命名空间 / 私有 / 所属空间为私有（§10.5 的 `plugin.visibility.notice.*`），非 `PUBLIC` 或私有空间才渲染)
+├── PluginLabelPanel            (**v2.21 新增**。作者本人 / 空间 ADMIN / SUPER_ADMIN 可见，其余角色整块不渲染；挂 / 摘标签，候选取 `GET /api/v1/labels` 的可见标签，`PRIVILEGED` 类型仅 SUPER_ADMIN 可操作（复用技能侧 `canManageLabelType`）；形态对齐 `skill-label-panel.tsx`，PRD §8.3)
 ├── PluginReadmePanel           (快照 Markdown，图片仅 https:)
 ├── PluginVersionList           (只读历史：版本/时间/来源/engines/「最新」标记/是否已撤版；**来源列只写 `npm` / `git`，不展示内部主机名、registry 域名或仓库主机地址** PRD §5.1 v2.19 ⑧；**不显示「该版本裁决徽标」** PRD §5.1 v2.19 ③；**不含**逐版本复制、安装或切换入口——多给一个可复制版本就等于让用户装到"详情页没在卖"的版本，`PRD §5.2` v2.15)
 ├── InstallPanel (sticky)
@@ -44,7 +45,6 @@ pages/dashboard/plugin-submit.tsx
 │   │   ├── SourceTabs (npm/git/zip/folder)
 │   │   │   ├── NpmSourcePanel（只有包名一个输入框，可 scoped；无版本输入框，版本服务端取 latest 并冻结）
 │   │   │   └── GitSourcePanel（只有仓库地址一个输入框）/ ZipSourcePanel / FolderSourcePanel
-│   │   ├── CategoryPicker (9 选 1)
 │   │   ├── DisplayNameInput    (**可编辑**，默认取包内 `displayName`/`name`、可改、≤200 字；v2.20 ④ 按原型 S05 裁决，原 v2.19「标题只读」作废)
 │   │   ├── AutoParsedPanel     (只读：name/version/engines/repository/readme/icon；**不含 title/displayName**，该字段已移到上部可编辑输入)
 │   │   ├── SubmissionChecklist (提交前校验项 + 异步阶段说明；**从右栏移到这里**，非 sticky，位于自动解析块之后、下一步按钮之前，条目不变)
@@ -67,7 +67,7 @@ pages/dashboard/my-plugins.tsx
 │   ├── SubmissionRow           (包名@版本 / 来源 / 当前阶段 / 已等待 / 进度条 / 放行进度)
 │   ├── SubmissionStageHint     (阶段解释 + 失败态给出可自修动作：改包重提 / 重试 / 看报告)
 │   └── SubmissionEmptyHint     (无在途：「当前没有进行中的提交」)
-├── MyPluginsFilterBar          (关键词 q + 状态 + 空间 + 分类 + 裁决 + 「仅看在途」开关)
+├── MyPluginsFilterBar          (关键词 q + 状态 + 空间 + 标签 + 裁决 + 「仅看在途」开关)
 └── PluginTable (共用组件)
     ├── 列：图标+标题 / 包名 / 空间 / 状态徽标 / 最新版本 / 裁决徽标（提交者 / 治理侧可见）/ 复制提示词次数（与详情页、市场卡片同源同字段同文案，取 promptCopyCount，PRD §10 v2.20 S06）/ 更新时间
     └── 操作列(查看/下架/重新上架/撤版/软删/看原因/重新提交/重新扫描)
@@ -101,7 +101,7 @@ features/plugin/
 「我的插件」的两个设计点（handover 缺口 #4）：
 
 1. **在途提交以提交为单位呈现，不以插件为单位**。原因：`RED`/`SCAN_FAILED`/`VALIDATION_FAILED` 的提交**没有版本行**（§4.2 第 3 条），按插件聚合会让"我明明提交了却看不到"——这正是用户最容易卡住的地方。数据源是 `GET /api/v1/plugins/submissions?terminal=false`（本设计新增的查询参数），与 `GET /dashboard/plugins` 分开取，两块各自分页。
-2. **筛选项一一对应后端参数，不做前端过滤**：`q`（包名/标题）、`status`（`DRAFT/PENDING/LISTED/HIDDEN/BLOCKED/REMOVED`）、`namespace`、`category`、`verdict`（`clear/review/red`）、`inFlight`（只看在途）。前端过滤在分页下会给出错误的"结果数"，且 `BLOCKED`/`REMOVED` 需要后端参与权限判断。
+2. **筛选项一一对应后端参数，不做前端过滤**：`q`（包名/标题）、`status`（`DRAFT/PENDING/LISTED/HIDDEN/BLOCKED/REMOVED`）、`namespace`、`label`、`verdict`（`clear/review/red`）、`inFlight`（只看在途）。前端过滤在分页下会给出错误的"结果数"，且 `BLOCKED`/`REMOVED` 需要后端参与权限判断。
 
 命名空间插件 tab 的空态三分支（handover 缺口 #5）：
 | 分支 | 触发条件 | 展示 |

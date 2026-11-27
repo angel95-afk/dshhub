@@ -40,7 +40,7 @@
 
 | 对象 | 指标 | 目标 | 测量口径 | 超了怎么办 |
 |---|---|---|---|---|
-| 市场列表 / 搜索 | `GET /api/v1/plugins` P95 | **< 300ms** @ 5,000 插件、20 万次/天 | 服务端耗时（不含网络），含 `page` 翻页与分类/关键词筛选 | 先查是否命中 `search_vector` GIN 索引与 `idx_plugin_listed`；未开 `pg_trgm`/计划退化则回退到只按 `category + updated_at` 游标分页 |
+| 市场列表 / 搜索 | `GET /api/v1/plugins` P95 | **< 300ms** @ 5,000 插件、20 万次/天 | 服务端耗时（不含网络），含 `page` 翻页与标签/关键词筛选 | 先查是否命中 `search_vector` GIN 索引与 `idx_plugin_listed`；未开 `pg_trgm`/计划退化则回退到只按 `updated_at` 游标分页 |
 | 插件详情 | `GET /api/v1/plugins/{ns}/{slug}` P95 | < 150ms | 单行 + 版本列表 | 同上 |
 | 索引生成 | `plugin.index.build.duration` P95 | **< 1s** @ 500 插件（P99 < 3s） | 一次"读库 + 序列化 + 17 条校验"，不含 PUT 网络耗时、也不含分发来源探测耗时（后者单列 `plugin.index.source_probe.duration`） | 查单表扫描是否走顺序扫描、`metadata_snapshot` 是否过大；超过 500 插件后按 §15 二期评估分片 |
 | 索引端到端生效 | `plugin.index.dirty.age` P95 | **≤ 2 分钟**（预算拆解见 §8.3） | 从 `markDirty` 事务提交到 `current.json` 指向新 `gen` | 查 worker 是否存活、私服/对象存储是否慢、生成是否连续失败 |

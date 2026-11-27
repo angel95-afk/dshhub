@@ -42,7 +42,7 @@ classDiagram
         +Long namespaceId
         +String slug
         +String packageName
-        +PluginCategory category
+        +Set<LabelId> labelIds
         +String titleZh
         +String titleEn
         +String summaryZh
@@ -70,7 +70,8 @@ classDiagram
         +unblock(actor, reason)
         +remove(actor, reason)
         +releaseName(actor, reason)
-        +changeCategory(category, actor)
+        +attachLabel(labelId, actor)
+        +detachLabel(labelId, actor)
         +pointToLatestVersion(versionId, verdict)
     }
 

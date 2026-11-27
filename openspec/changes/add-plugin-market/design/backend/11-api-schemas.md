@@ -10,7 +10,7 @@ components:
   schemas:
     NpmSubmissionRequest:
       type: object
-      required: [namespace, visibility, sourceType, category, packageName]
+      required: [namespace, visibility, sourceType, packageName]
       description: >-
         npm 来源**只有一个输入：包名（必填，可 scoped，形如 name / @scope/name）**（`PRD §6.2/§6.3` v2.13）。
         **没有 version 字段**——表单不得出现版本输入框，用户不指定、不覆盖版本；分支 / tag / commit / 凭据同样不填。
@@ -25,11 +25,10 @@ components:
         visibility:
           $ref: '#/components/schemas/PluginVisibility'
         sourceType: { type: string, const: npm }
-        category: { $ref: '#/components/schemas/PluginCategory' }
         packageName: { type: string, maxLength: 214, pattern: '^(@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*$', description: 'npm 包名，可 scoped；不含版本' }
     GitSubmissionRequest:
       type: object
-      required: [namespace, visibility, sourceType, category, url]
+      required: [namespace, visibility, sourceType, url]
       description: >-
         Git 来源只有一个输入：仓库地址（必填）；**一插件一仓库，插件包必须在仓库根目录**。
         **没有 ref / tag / commit / path / 凭据字段**（`PRD §6.3`，表单里出现 token/私钥是红线）。
@@ -42,7 +41,6 @@ components:
         visibility:
           $ref: '#/components/schemas/PluginVisibility'
         sourceType: { type: string, const: git }
-        category: { $ref: '#/components/schemas/PluginCategory' }
         url: { type: string, maxLength: 1000, description: 'https://host/group/repo(.git) 或 git@host:group/repo.git' }
     PluginVisibility:
       type: string
@@ -52,9 +50,12 @@ components:
         **必选、无留空、无默认值**（不传即 400，不由服务端兜底成 `PUBLIC`）；zip / folder 的 multipart 提交同样必带。
         与"空间是否公开"是两个正交维度，两者共同决定可见性与状态文案（`PRD §8.4` 四行判定表）——所以**只下发可见范围是不够的**，DTO 必须同时给出 `namespaceIsPublic`（见下）。
         非法取值 → 400 `PLUGIN_VALIDATION_VISIBILITY_INVALID`（§7.4.1 A 族），`details` 带 `{field, allowedValues[]}`。
-    PluginCategory:
+    PluginLabelSlug:
       type: string
-      enum: [agent, ui, memory, communication, devtools, search-knowledge, data, security, other]
+      pattern: '^[a-z0-9][a-z0-9-]{0,63}$'
+      description: >-
+        标签 slug。**取值域来自技能侧同一张 `label_definition`（`GET /api/v1/labels` 的可见标签），
+        插件侧不设枚举、不硬编码**（`PRD §8.3` v2.21）。运营新增标签后无需改代码。
     PluginScanVerdict:
       type: string
       nullable: true
@@ -141,13 +142,17 @@ components:
           properties:
             categories:
               type: array
+              description: >-
+                索引协议字段名沿用 `categories`，**内容改为可见标签清单**（`PRD §8.3` v2.21）：
+                只含 `label_definition.visible_in_filter = TRUE` 且未被删除的标签，按词表 `sort_order` 升序。
+                这样 DSH 客户端零改动即可把原有的分类筛选读成标签筛选。词表增删后随下一轮重建生效。
               items:
                 type: object
                 required: [id, title]
                 properties:
-                  id: { $ref: '#/components/schemas/PluginCategory' }
+                  id: { $ref: '#/components/schemas/PluginLabelSlug' }
                   title: { $ref: '#/components/schemas/LocalizedText' }
-            labels: { type: array, items: { type: string }, description: 本期留空 }
+            labels: { type: array, items: { type: string }, description: 本期仍不输出（协议字段留空，标签统一由 categories 承载） }
         plugins:
           type: array
           items: { $ref: '#/components/schemas/DshIndexPlugin' }
@@ -176,10 +181,12 @@ components:
             url: { type: string, format: uri }
         metadata:
           type: object
-          required: [category]
+          description: >-
+            `metadata.category` 输出该插件的**主标签**（插件标签中按词表 `sort_order` 数值最小者），
+            **插件无标签时整个字段省略**，因此不放进 required（`PRD §8.3` v2.21）。
+            多标签只在站内生效，索引受协议单值限制只体现主标签。
           properties:
-            category: { $ref: '#/components/schemas/PluginCategory' }
-        versions:
+            versions:
           type: array
           minItems: 1
           items: { $ref: '#/components/schemas/DshIndexVersion' }

@@ -17,7 +17,7 @@ paths:
       description: '"仅看收藏"为前端本地过滤，不新增后端参数（PRD §4.2 v2.20 ④）；sort 取 copyCount 时按 plugin.prompt_copy_count 倒序（三处同源计数，PRD §10）'
       parameters:
         - { name: q, in: query, schema: { type: string, maxLength: 200 } }
-        - { name: category, in: query, schema: { $ref: '#/components/schemas/PluginCategory' } }
+        - { name: label, in: query, schema: { type: string, pattern: '^[a-z0-9][a-z0-9-]{0,63}$' }, description: '标签 slug，单选；取值域是 GET /api/v1/labels 的可见标签（与技能市场同一套词表，PRD §8.3 v2.21）' }
         - { name: sort, in: query, schema: { type: string, enum: [newest, name, copyCount], default: newest } }
         - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
         - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 48, default: 24 } }

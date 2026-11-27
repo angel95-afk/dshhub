@@ -18,8 +18,8 @@ plugin.market.indexSource.title / .subtitle / .copy / .copied
 plugin.market.indexSource.step1 / .step2 / .step3
                                           （**已删除 `httpWarning` 键**：PRD §4.1 v2.19 ⑥ 删去 `http:` 警告与"索引源属于当前 profile"整句；市场页只铺三步，不展开 `format: 1` 与安全提示；相关术语定义仍在 PRD §2，不得据此在页面加提示）
 plugin.market.indexSource.status.loading / .error / .empty / .ready
-plugin.market.categories.all
-plugin.market.category.{agent|ui|memory|communication|devtools|search-knowledge|data|security|other}
+plugin.market.labels.all                                 → 全部（筛选栏首个 chip 的固定文案）
+                                                          （**v2.21 不再有 9 类枚举键**：标签名一律取 `label_translation` 的 displayName，按 locale 解析、缺失回落 en；前端**不得**把标签名写进 i18n 资源，否则运营新增标签就要发版）
 plugin.market.sort.newest / .name
 plugin.market.resultCount
 plugin.market.loadMore
@@ -79,7 +79,6 @@ plugin.submit.source.npm.fieldNotSupported   → npm 来源只填包名，版本
 plugin.submit.source.zip.drop / .hint
 plugin.submit.source.folder.drop / .hint / .unsupported
 plugin.submit.visibility.label / .help    （右栏「发布设置」区第二项，紧跟命名空间；**必选、无留空、无默认**，UI 可预选「公开」但必须显式提交；三档标签复用技能侧 `publish.visibilityOptions.*`，不新增同义键）
-plugin.submit.category.label / .help
 plugin.submit.autoParsed.title / .readonlyHint
 plugin.submit.checklist.title / .item.{...}
 plugin.submit.action.next                 → 下一步：确认（第一步唯一按钮，只打开确认弹窗、不提交）
@@ -105,8 +104,8 @@ plugin.mine.inFlight.empty                → 当前没有进行中的提交
 plugin.mine.noInstallableVersion          → 已无可安装版本
 plugin.mine.inFlight.waiting              → 已等待 {duration}
 plugin.mine.inFlight.editPackage          → 改包后重新提交
-plugin.mine.filter.q / .status / .namespace / .category / .verdict / .inFlight
-plugin.table.column.plugin / .version / .status / .category / .verdict / .copyCount / .actions
+plugin.mine.filter.q / .status / .namespace / .label / .verdict / .inFlight
+plugin.table.column.plugin / .version / .status / .label / .verdict / .copyCount / .actions
                                           （`.copyCount` 为「我的插件」列表的复制提示词次数列，与 `plugin.card.copyCount` 同源同字段同文案、取 `promptCopyCount`，PRD §10 v2.20 S06；**不得新增浏览数列/键**）
 plugin.table.action.view / .hide / .restore / .reason / .resubmit / .rescan / .review
 plugin.table.action.yank / .unyank / .delete / .releaseName

@@ -25,7 +25,7 @@
 | `format` | 常量 `1` | 不可配置 |
 | `title` | `{ zh: "{siteName} 插件市场", en: "{siteName} Plugin Market", ko: "{siteName} 플러그인 마켓", ru: "{siteName} Маркетплейс плагинов" }`；`siteName` 取 `SitePresentationService` 的 `siteName` | `siteName` 为空 → 用 `SkillHub`；**`en` 必须有值**，缺失即构建失败 |
 | `description` | 站点一句话介绍（LocalizedText），来自站点展示设置 | 缺失即整体省略该键（不写 `null`） |
-| `metadata.categories` | 固定 9 类，id 为 ASCII slug，title 取 i18n 四语言 | 不随插件存在性增删（分类能否增删仍未定，v1 固定全集，见 §14.2 Q4） |
+| `metadata.categories` | **可见标签清单**：与技能侧同一张 `label_definition`，取 `visible_in_filter = TRUE` 且未删除者，按 `sort_order` 升序；`id` = 标签 slug，`title` 取 `label_translation`（`PRD §8.3` v2.21） | 词表为空 → 输出空数组（**不省略该键**）；`ko` / `ru` 缺翻译回落 `en`，`en` 必需 |
 | `metadata.labels` | 不输出 | — |
 | `metadata.sortKeys` | 不输出（`PRD §4.2` 明确不声明外部指标） | — |
 | `plugins[].name` | `plugin.package_name`（**不是** `namespace/slug`） | — |
@@ -35,7 +35,7 @@
 | `plugins[].author` | `plugin.author_display`；为空回落空间 `display_name` | 两者皆空 → 省略 |
 | `plugins[].homepage` | 详情页绝对 URL：`{publicBaseUrl}{basePath}/plugins/{ns}/{slug}` | base url 未配置 → **构建失败**（不能产出相对 homepage） |
 | `plugins[].repository` | `plugin.repository_url` → `{url}`；一插件一仓库、包在根目录，**不输出 `directory` 字段** | 无仓库 → 省略 |
-| `plugins[].metadata.category` | `plugin.category` | 必填 |
+| `plugins[].metadata.category` | 该插件的**主标签**：`plugin_label` join `label_definition`，取 `sort_order` 数值最小者的 slug | **无标签 → 整体省略 `category` 字段**（不写空串、不写占位；该字段不在 required 内） |
 | `plugins[].versions[]` | 该插件全部 `status='LISTED'` 版本，按 `publish_timestamp` **倒序** | 0 个 → 整个插件不进索引（`versions` 不能为空） |
 | `versions[].version` | 精确 SemVer | 生成期校验，非法即构建失败 |
 | `versions[].publishTimestamp` | `plugin_version.publish_timestamp`（Unix 秒，上架时间；不是提交时间） | 为 NULL 的 LISTED 版本视为缺陷 → 构建失败 |
@@ -126,7 +126,7 @@ pluginKey = lower(hex(sha1(utf8(package_name))))[0:16]
 
 **关于"S3 无 rename"**：`PRD §8.6` 写的"写临时键 → 原子替换正式键"在 S3 上做不到（无 rename）。替代机制是"不可变版本键 + 指针覆盖 PUT"。正确性依据：S3 的 PUT Object 是原子的，读方要么看到旧对象要么看到新对象，不存在读到半个对象的窗口；而"覆盖正式键"的做法反而会让 DSH 在高频拉取时命中半写状态（S3 保证不会，但本地文件实现会因为覆盖写而短暂截断）。因此版本化键在两种存储实现上都安全。
 
-**发布时延的目标值（端到端 ≤ 2 分钟）**：从"代发成功 / 下架 / 撤版 / 改分类"这类改变可见性的动作提交，到 DSH 用默认 60s 缓存能拉到新索引，预算拆解如下（同时也是 §12.1 的 SLO 与 §12.3 的告警基线）：
+**发布时延的目标值（端到端 ≤ 2 分钟）**：从"代发成功 / 下架 / 撤版 / 挂摘标签"这类改变可见性的动作提交，到 DSH 用默认 60s 缓存能拉到新索引，预算拆解如下（同时也是 §12.1 的 SLO 与 §12.3 的告警基线）：
 
 | 环节 | 预算 | 依据 |
 |---|---|---|
@@ -170,11 +170,13 @@ pluginKey = lower(hex(sha1(utf8(package_name))))[0:16]
 | 失败处理 | 视为发布阻塞（`PRD §8.6` 的"双保险"）。CI 只校验"生成器能否产出合规文件"——用测试夹具构造一份含 1 个 npm 插件、1 个 git 插件、0 个图标的最小索引 |
 | 版本锁定 | 校验库版本与运行时无耦合，但必须锁精确版本并在升级 PR 中说明 |
 
-### 8.6 `metadata.categories` 与 i18n 的关系
+### 8.6 `metadata.categories` 与 i18n 的关系（v2.21：该键改承载标签）
 
-- 索引里的 `categories[].title` 是**协议字段**，必须四语言齐平（`en` 必需）；来源是 `plugin.categories` 的 i18n 资源，构建期从资源文件读取，不写死在 Java 常量里（避免两处维护）。
-- 页面上的分类筛选用 `plugin.category.{id}` 键；索引里的 title 用 `plugin.category.{id}.title` 键。两组键都在 `zh/en/ko/ru` 中存在，locale 一致性测试会校验。
-- 分类 id 固定 9 类，**不随数据变化**：即便某分类下 0 个插件，索引仍声明 9 类（DSH 的分类筛选不应因站点数据为空而消失）。分类能否增删仍未定（§14.2 Q4），v1 取"固定全集"，增删需要改这里 + 重建索引 + 发版说明。
+- 索引里的 `categories[].title` 是**协议字段**，`en` 必需；来源是 `label_translation`（与技能市场同一张表），构建期查库读取，**不写死在 Java 常量、不在插件侧维护第二份词表**。
+- 站内筛选 chip 的文案同样取 `label_translation`（按请求 locale 解析，缺失回落 `en`）；索引里的 title 取四语言，`ko` / `ru` 缺翻译时回落 `en`——标签是运营数据，缺翻译不该让索引构建失败（与插件数据校验的严格度刻意不同）。
+- 标签清单**随词表变化**：运营新增或删除标签后，下一轮重建即生效；`visible_in_filter = FALSE` 的标签不进索引、不进筛选栏，但仍可挂在插件上（用于推荐类展示）。
+- 插件无标签时 `plugins[].metadata.category` 整体省略，索引仍合法（该字段不在 `required` 内，见 §7.3）。**不要**用空串或"其他"兜底——那是给协议塞假数据。
+- 索引协议字段名沿用 `categories` / `category` 不动，是为了让 DSH 客户端零改动；多标签只在站内生效（`PRD §8.3` v2.21）。
 
 ---
 

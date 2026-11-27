@@ -1,4 +1,4 @@
-# §16 + 附　任务拆分建议、改造前回归保护、S1–S26 安全断言、接触点清单
+# §16 + 附　任务拆分建议、改造前回归保护、S1–S27 安全断言、接触点清单
 
 > 所属：总体设计　｜　覆盖章节：§16 + 附
 > 章节号全局唯一、不随文件移动；跨文件引用写 `§N.M`，不要写文件名。索引见 [`README.md`](README.md)。
@@ -21,6 +21,7 @@
    - **审核页包内文件浏览：三个端点 + `PluginFileBrowser` + §16 的 S1–S13 断言**：拆开会出现"能看内容但没有 `text/plain`/`nosniff`/CSP 与前端禁用 `innerHTML` 的约束"——那是一个已经上线、但把未审核 HTML/SVG 直接渲染在自己域名下的预览面。**响应头与前端渲染约束必须和端点同一个 PR**，不允许"先上功能再补安全"。
    - **两步提交（`ConfirmSubmitDialog` + §4.1 时序 + §5.3 入口 + §7.2 POST 时机）+ S25 断言**：拆开会出现"弹窗打开了但提交已发出"或"返回编辑后留下一条受理记录"——未确认即受理是产品契约破坏，必须同批交付；且**不得**以"先做单步提交、后补确认弹窗"的增量上线，那会让中间态出现无确认的提交入口。
    - **用户侧披露全撤（删 `PluginSecurityDisclosure` + 治理侧完整报告 + 包内文件浏览 + 提交者视图；安装文档无能力摘要、用户侧无免责常驻）+ S26 断言**（v2.20 ② 收紧，v2.19 的"详情页下沉 + 安装文档一行摘要 + 免责常驻"口径作废）：这是"证据展示在哪一侧"的纯展示侧调整，**必须与判定规则/四裁决/扫描契约保持同一版本**，不得出现"用户侧已删但治理侧报告还没接好"的断档——那会让需确认/有红线的插件在两侧都看不到证据。
+   - **标签体系统一（`plugin_label` 表 + `GET /labels` 复用 + 详情页 `PluginLabelPanel` + 删 `plugin.category` 列与 `PATCH .../category` 端点）+ S27 断言**（`PRD §8.3` v2.21）：拆开会出现"提交页已经不能选标签、但详情页还没有挂载入口"的断档——作者提交后无处打标签，插件永远无标签、筛选与索引主标签全空。词表复用与权限判定必须与删列/删端点同批，**不得**保留旧 `category` 列做"兼容期"双写。
 4. **可独立并行的两条线**：前端页面（依赖生成的 OpenAPI 类型，可与后端并行，先对 mock）与 scanner 侧（独立容器，契约冻结后即可并行）。
 5. **跨任务共享的产物要先冻结**：`pluginKey` 规则、索引键名、指针对象结构、`errorCode` 取值集合、i18n key 命名。这五项一旦变动会波及所有任务，应在第一个任务里定稿。
 
@@ -93,6 +94,16 @@
 |---|---|---|
 | S25 | **未确认不改状态**：提交页第一步「下一步：确认」**只打开** `ConfirmSubmitDialog`，不得 `POST /submissions`、不得产生 `submissionId` / 受理记录 / 审计 / 状态；弹窗「返回编辑」或右上关闭放弃本次确认，系统里仍无该提交；只有点「确认发布」才发**一次** `POST` 并进入 `RECEIVED`。正例：确认前查 `GET /submissions?terminal=false` 无该 `name@version` 行；点确认后恰有一条 `PLUGIN_SUBMISSION_CREATED`。反例：点「下一步」即收到 202、弹窗打开时进度视图已出现、「返回编辑」后仍留下 submission——任一出现即失败（§4.1、§5.3、§7.2、§10.2） | ① 前端单测：spy `POST /submissions`，点「下一步」断言调用次数 0、「确认发布」断言恰好 1 次；②「返回编辑」用例断言无 mutation、无 `invalidate(inFlight)`；③ 集成测试：确认前直查 submissions 表无行、确认后恰一行 + 一条审计；④ 可见性联动：表单改 `visibility` 后弹窗「可见性」行即时同步（同一 DTO 字段，不另存副本） |
 | S26 | **用户侧不展示任何披露、治理侧仍完整**（v2.20 ② 收紧）：详情页 / 市场卡片 / 安装文档 / 索引文件 DOM 中**不存在**能力清单 / 红线列表 / `文件:行号` 证据折叠 / 扫描器版本时间 / 裁决徽标 / 风险摘要 / 免责说明（`security-disclosure`、`verdict-meta`、`capability-labels`、`red-line-labels` 组件均不被用户侧页面引用）；详情页只留只读版本历史 / 安装区 / README。市场卡片无浏览数、无「复制提示词」按钮、无裁决徽标，复制次数与详情页同源。版本列表每行无「该版本裁决徽标」、来源只写 `npm`/`git`（无内部主机名/registry 域名）。**判定规则 / 四裁决 / 扫描契约 / 证据生成本身一概不动**——治理侧审核页完整报告、包内文件浏览与提交者视图仍可读到全部证据。正例：`/scan-reports/{id}` 仍返回完整证据；反例：用户侧任何界面渲染出证据片段 / 徽标 / 摘要 / 免责、浏览数进入任何界面、版本列表出现第二处来源判定——任一出现即失败（§1.1/§1.2、§5.1、§7.2.1、§7.3、§9、§10.2、§11 验收 23–24） | ① 前端 DOM 断言：详情页与卡片 `querySelector` 不到能力/红线/证据/徽标/免责节点；② 静态门禁 grep：`pages/plugin-detail.tsx` 与 `pages/plugins.tsx` 不 import `security-disclosure` / `verdict-meta` / `capability-labels` / `red-line-labels`；③ 接口断言：`security-scan` 匿名端点不返回裁决/能力/红线/证据/摘要字段，`/scan-reports/{id}` 仍含完整证据；④ 列表投影断言：`PluginPage.items[]`（市场卡片）与 `GET /api/v1/dashboard/plugins` 的 `items[]`（「我的插件」）**都含** `promptCopyCount`、都不含 `viewCount` 与任何 verdict 字段，且两处与详情页读同一个 `plugin.prompt_copy_count`（PRD §10 v2.20 S06 三处同源）；⑤ 复跑 S18/S19：来源唯一判定点与"无版本选择器"仍成立（v2.20 只改展示侧，不动这两条） |
+
+---
+
+### 标签口径的回归断言（S27，随 `PRD §8.3` v2.21 引入）
+
+这一条守 v2.21 的标签订正——**标签必须与技能市场同源**，而"另造一套分类"正是本版被推翻的错法，所以写成"故意做错就红"的门禁。验收条目仍 27 条（不新增 PRD 验收）。
+
+| # | 断言 | 手段 |
+|---|---|---|
+| S27 | **标签只有一个来源、提交表单没有标签、权限分层正确**：① 插件侧**不存在**独立词表或分类枚举——`plugin` 表无 `category` 列、`plugin_submission` 无 `category` 列、无 `ck_plugin_category` 约束、OpenAPI 无 `PluginCategory` 枚举、无 `PATCH /plugins/{ns}/{slug}` 改分类端点；② 市场筛选 chip 的候选 = `GET /api/v1/labels` 的可见标签（`visible_in_filter = TRUE`），数量 = 可见标签数 + 1（「全部」），顺序按 `label_definition.sort_order`；③ **提交表单不含任何标签字段**，`POST /submissions` 的 body 带 `category` 或 `labels` 一律 400；④ 一个插件可挂多个标签（`plugin_label` 多对多），详情页头部按词表顺序展示全部；⑤ 标签面板对非作者、非空间 ADMIN、非 SUPER_ADMIN **不渲染**，`PRIVILEGED` 类型标签对普通空间 ADMIN **挂摘返回 403**；⑥ 索引 `metadata.categories` 的 `id` 集合 = 可见标签 slug 集合，`plugins[].metadata.category` = 该插件主标签（`sort_order` 最小者），**无标签插件的该字段缺失**而不是空串/占位。正例：运营在技能侧新增一个标签后重建，插件市场筛选栏与索引 `metadata.categories` 同时多出该项（未改一行代码）。反例：出现插件专属分类枚举、前端硬编码 9 个 slug、提交表单能选标签、普通 ADMIN 能挂特权标签、无标签插件在索引里写成 `"category": "other"`——任一出现即失败（§6.3、§8.3、§7.2、§8.6） | ① 静态门禁 grep：`server/` 与 `web/src/` 内不得出现 `agent`/`ui`/`memory`/`communication`/`devtools`/`search-knowledge`/`data`/`other` 与 `category` 的组合字面量，不得出现 `plugin.category` 列引用；② OpenAPI 快照断言：不含 `PluginCategory`，含 `PluginLabelSlug`，`NpmSubmissionRequest` / `GitSubmissionRequest` / multipart 的 `required` 不含 `category`；③ 权限矩阵测试：`{作者, 空间 ADMIN, SUPER_ADMIN, 其他成员, 非成员}` × `{挂 RECOMMENDED, 摘 RECOMMENDED, 挂 PRIVILEGED, 摘 PRIVILEGED}` 逐格断言 204 / 403；④ 索引夹具：构造"0 标签 / 1 标签 / 3 标签"三个插件，断言 `metadata.category` 分别为**缺失** / 该 slug / `sort_order` 最小者，且 `metadata.categories` 与 `GET /labels` 逐项相等；⑤ 交叉断言：筛选 `?label=X` 返回的每个插件都含标签 X（用同一夹具） |
 
 ---
 
