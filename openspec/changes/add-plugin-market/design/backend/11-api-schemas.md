@@ -259,3 +259,5 @@ namespaceIsPublic:
 
 卡片（`PluginPage.items[]`）同样需要这两个字段：市场页只列 `PUBLIC` + 公开空间的插件，但「我的插件」与命名空间插件 tab 复用同一个 `PluginCard` 的数据形状，缺字段就得在前端特判；**统一带上，列表文案由后端字段决定**。
 
+**卡片复制次数字段（`PRD §4.2`/`§10`/`§11` 验收 4·22 v2.19 ①、v2.20 S06 三处同源）**：`PluginDetail`、`PluginPage.items[]`（市场卡片）与 `GET /api/v1/dashboard/plugins` 的 `items[]`（「我的插件」列表，作者视角）**三处都下发** `promptCopyCount`（`integer format int64`，取同一个 `plugin.prompt_copy_count` 字段），**三处同源同字段同文案**（"按来源去重…仅供参考"；我的插件列表与该插件市场卡片同数）。市场卡片与「我的插件」列表**可展示**该计数，但 API 与界面都**不下发、不展示浏览数**（`view` 只落库）；卡片也**不放**「复制提示词」按钮——提示词只由详情页按确定版本生成（§7.2.1）。不新增"安装量 / 下载量"字段。
+

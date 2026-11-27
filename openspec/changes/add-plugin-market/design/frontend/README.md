@@ -6,10 +6,10 @@
 
 | 文件 | § | 行数 | 一句话 |
 |---|---|---|---|
-| [`01-routing-and-guards.md`](01-routing-and-guards.md) | §10.1 | 35 | 路由与守卫 |
-| [`02-pages-and-component-tree.md`](02-pages-and-component-tree.md) | §10.2 | 147 | 页面与组件树 |
+| [`01-routing-and-guards.md`](01-routing-and-guards.md) | §10.1 | 37 | 路由与守卫 |
+| [`02-pages-and-component-tree.md`](02-pages-and-component-tree.md) | §10.2 | 159 | 页面与组件树 |
 | [`03-query-keys-and-state.md`](03-query-keys-and-state.md) | §10.3–§10.4 | 59 | query key 与轮询、状态与乐观更新的边界 |
-| [`04-i18n-keys.md`](04-i18n-keys.md) | §10.5 | 185 | i18n 键清单（四语言必须齐平） |
-| [`05-analytics.md`](05-analytics.md) | §10.6 | 28 | 埋点 |
+| [`04-i18n-keys.md`](04-i18n-keys.md) | §10.5 | 226 | i18n 键清单（四语言必须齐平） |
+| [`05-analytics.md`](05-analytics.md) | §10.6 | 31 | 埋点 |
 
-返回总索引：[`../README.md`](../README.md)；断言（S1–S24）见 [`../04-overall-tasks-and-assertions.md`](../04-overall-tasks-and-assertions.md)。
+返回总索引：[`../README.md`](../README.md)；断言（S1–S26）见 [`../04-overall-tasks-and-assertions.md`](../04-overall-tasks-and-assertions.md)。

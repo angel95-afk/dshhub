@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>DSH 插件市场 · 交互原型 v1.0（对应 PRD v2.17）</title>
+<title>DSH 插件市场 · 交互原型 v1.0（对应 PRD v2.20）</title>
 <style>
   :root{
     /* 颜色令牌按真实站点（http://localhost:3000/search）计算样式实测替换：纯中性黑白灰，无蓝调 */
@@ -461,7 +461,7 @@
     <div class="meta-row">
       <span class="meta">9 个屏幕</span>
       <span class="meta">light theme</span>
-      <span class="meta">对应 PRD v2.17（443 行）</span>
+      <span class="meta">对应 PRD v2.20（461 行）</span>
       <span class="meta">2026-11-26</span>
       <span class="meta">示例域名 skillhub.example.com</span>
     </div>
@@ -470,7 +470,7 @@
   <nav class="toc">
     <a href="#s01">S01 导航改造</a>
     <a href="#s02">S02 技能市场 · 发布按钮</a>
-    <a href="#s03">S03 插件市场 · 两模块</a>
+    <a href="#s03">S03 插件市场 · 两段平铺</a>
     <a href="#s04">S04 插件详情</a>
     <a href="#s05">S05 提交插件</a>
     <a href="#s06">S06 我的插件</a>
@@ -658,7 +658,7 @@
   <section class="screen" id="s03">
     <div class="screen-head">
       <span class="no">S03</span>
-      <h2>插件市场 · 两模块</h2>
+      <h2>插件市场 · 两段平铺</h2>
       <span class="path">/plugins · PRD §4</span>
       <p class="desc">自上而下：索引源 → 插件列表。安装提示词只在详情页出现（每个插件一条，带包名与版本），市场页不再重复一遍。</p>
     </div>
@@ -825,11 +825,11 @@
     </div>
 
     <ol class="notes">
-      <li><b>01</b> 模块一必须显示完整绝对地址，子路径部署时不得丢 base path</li>
-      <li><b>02</b> 市场页只有两个模块；提示词按插件生成，只放在详情页（见 S04）</li>
+      <li><b>01</b> 索引源区必须显示完整绝对地址，子路径部署时不得丢 base path</li>
+      <li><b>02</b> 市场页只有上下平铺两段；提示词按插件生成，只放在详情页（见 S04）</li>
       <li><b>03</b> 9 个分类对齐 dsh-hub；分类 id 用 ASCII，界面走 i18n</li>
       <li><b>04</b> 卡片计数是「复制提示词次数」，刻意不叫"安装量"</li>
-      <li><b>05</b> 索引为空时，模块二显示空态但模块一仍可用</li>
+      <li><b>05</b> 索引为空时，列表区显示空态但索引源区仍可用</li>
       <li><b>06</b> 「我的插件」「提交插件」并列，与技能市场的「我的技能」「发布技能」同构；未登录均不渲染</li>
       <li><b>07</b> 卡片上不放复制按钮——提示词要带包名与版本，只能在详情页生成</li>
     </ol>
@@ -927,7 +927,7 @@
       <span class="no">S05</span>
       <h2>提交插件</h2>
       <span class="path">/dashboard/plugins/submit · PRD §6</span>
-      <p class="desc">三种提交来源收敛为两条分发路径；表单以自动解析为主，人工只选五样（显示名称、命名空间、可见范围、来源、标签）。右栏为常驻「发布设置」区，与技能发布页同构；校验清单就近放在「可见范围」下方。提交与技能发布页一致，是两步：页脚「下一步：确认」→ 「确认提交信息」弹窗再确认。页面属于控制台布局，左侧导航常驻。</p>
+      <p class="desc">四种提交来源收敛为两条分发路径；表单以自动解析为主，人工只选四样（命名空间、可见范围、来源、分类；显示名称默认取包内名称、可改，另计）。右栏为常驻「发布设置」区，与技能发布页同构；校验清单就近放在「可见范围」下方。提交与技能发布页一致，是两步：页脚「下一步：确认」→ 「确认提交信息」弹窗再确认。页面属于控制台布局，左侧导航常驻。</p>
     </div>
 
     <div class="browser">
@@ -1001,7 +1001,7 @@
                   <div class="field">
                     <label>npm 包名<span class="req">*</span></label>
                     <input class="input" value="@team/dsh-ops" />
-                    <div class="help">输入 <code>npm.internal.example.com</code> 的 npm 包名。DSH Hub 会读取 latest 版本的清单与 README，验证通过后按精确版本发布。</div>
+                    <div class="help">输入 npm 仓库的包名（可 scoped）。DSH Hub 会读取 latest 版本的清单与 README，验证通过后按精确版本发布。</div>
                   </div>
                 </div>
 
@@ -1009,7 +1009,7 @@
                 <div class="panel" data-panel="git" hidden>
                   <div class="field">
                     <label>仓库地址<span class="req">*</span></label>
-                    <input class="input" placeholder="https://git.internal/team/plugins" />
+                    <input class="input" placeholder="https://git.example.com/team/plugins" />
                     <div class="help">接受 <code>https://host/group/repo</code> 与 <code>git@host:group/repo.git</code>（内部归一）；凭据由平台配置，用户不填任何凭据；一个插件一个仓库，插件包必须位于仓库根目录。</div>
                   </div>
                   <div class="hint" style="margin-top:-4px"><span>ⓘ</span><span>本来源只有仓库地址一个输入框：禁止填分支 / tag / commit / 子目录，一律取默认分支的最新提交，索引里锁定到该提交。</span></div>
@@ -1051,7 +1051,7 @@
                     <div class="ro"><div class="k">包名 name</div><div class="v">@team/dsh-ops</div></div>
                     <div class="ro"><div class="k">版本 version</div><div class="v">1.4.0</div></div>
                     <div class="ro"><div class="k">engines.dsh</div><div class="v">&gt;= 0.2.2</div></div>
-                    <div class="ro"><div class="k">仓库 repository</div><div class="v">git.internal/team/plugins</div></div>
+                    <div class="ro"><div class="k">仓库 repository</div><div class="v">git.example.com/team/plugins</div></div>
                     <div class="ro"><div class="k">简介</div><div class="v">降低 Token 消耗</div></div>
                     <div class="ro"><div class="k">README</div><div class="v">已快照 · 1.8 KB</div></div>
                     <div class="ro"><div class="k">图标</div><div class="v">包内 icon.svg · 4.2 KB</div></div>
@@ -1135,7 +1135,7 @@
     </div>
 
     <ol class="notes">
-      <li><b>01</b> npm / git 直接产生 source；zip / 文件夹由平台发布成 npm 包后记为 npm</li>
+      <li><b>01</b> 四种提交来源最终只收敛为 npm / git 两种分发来源（用户侧只写"发布 / 上架"，不展开内部处理）</li>
       <li><b>02</b> zip 与文件夹必须含合法 <code>package.json</code> 且声明 <code>dsh.bundle</code>，提交前校验不通过当场拒绝；通过则 202 异步受理进入排队中（不产生同步 422，也不留版本记录）</li>
       <li><b>03</b> 版本冲突返回 409：Git 提示"请先在仓库中升级版本号再提交"，npm 提示"该版本已存在，请先在上游 npm 发布新版本后重新提交"</li>
       <li><b>04</b> 发布失败（仅 zip / 文件夹来源）保留审核结论：个人空间停「待发布」、团队空间停「已通过审核，等待发布」；两态都没有可安装制品、不进索引，作者可见脱敏原因并可重试，重试成功才上架；npm 与 git 来源不经这一步，审核通过即上架（PRD §6.5 / §6.6 / 验收 17）</li>
@@ -1144,8 +1144,8 @@
       <li><b>07</b> npm 来源无版本输入框、任何途径传入版本都不受理；版本取 latest 跳过 prerelease 并在提交时冻结，审核 / 发布不重新解析（PRD §6.3 / §6.6）</li>
       <li><b>08</b> Git 来源无子目录输入框、也无分支 / tag / commit / 凭据输入框；API 夹带 path（子目录）同样不受理——一个插件一个仓库，包在仓库根目录（PRD §6.2 / §6.3）</li>
       <li><b>09</b> 可见范围决定是否进公共索引：公开 + 空间公开才进索引；「仅命名空间」不进索引、仅该空间成员站内可见；「私有」仅作者本人可见（PRD §6.3 / §8.2 / §8.4）。右栏「发布设置」与技能发布页同构：命名空间、可见范围常驻可见、可下拉选择，更新版本时命名空间禁用；<b>选到「公开」以外时，可见范围下方立刻出现醒目提示「不会进入索引源」，不需要等到提交才知道</b></li>
-      <li><b>10</b> 提交是两步、不是一步：页脚只有一颗「下一步：确认」，点开「确认提交信息」弹窗（显示名称 / 包名@版本 / 可见性 / 简介 / 审核说明），弹窗里「返回编辑」回到表单、「确认发布」才真正提交（PRD §6.4）</li>
-      <li><b>11</b> 提交插件在<strong>控制台布局</strong>内：左侧导航常驻、内容区右侧展开；页头左上角「返回我的插件」回到列表，不靠浏览器后退（对齐套件新建 / 编辑页的 <code>SuiteWorkspaceHeader</code>）</li>
+      <li><b>10</b> 提交是两步、不是一步：页脚只有一颗「下一步：确认」，点开「确认提交信息」弹窗（显示名称 / `@namespace/name@version` / 可见性 / 简介 / 末行审核说明文案，与技能发布页确认弹窗同款），弹窗里「返回编辑」回到表单、「确认发布」才真正提交（PRD §6.3）</li>
+      <li><b>11</b> 提交插件在<strong>控制台布局</strong>内：左侧导航常驻、内容区右侧展开；页头左上角「返回我的插件」固定回到「我的插件」列表（不靠浏览器后退、不按来源改目标；对齐套件新建 / 编辑页的 <code>SuiteWorkspaceHeader</code>）</li>
     </ol>
   </section>
 
@@ -1255,7 +1255,7 @@
                     <span class="s06-meta-item" title="可见性：公开"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>公开</span>
                     <span class="s06-meta-item s06-ver">v1.4.0</span>
                     <span class="s06-meta-item">开发工具</span>
-                    <span class="s06-meta-item" title="下载量"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>1.2k</span>
+                    <span class="s06-meta-item" title="复制提示词 128 次"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>复制 128</span>
                   </div>
                 </div>
               </article>
@@ -1278,7 +1278,7 @@
                     <span class="s06-meta-item" title="可见性：公开"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>公开</span>
                     <span class="s06-meta-item s06-ver">v1.0.0</span>
                     <span class="s06-meta-item">记忆</span>
-                    <span class="s06-meta-item" title="下载量"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>386</span>
+                    <span class="s06-meta-item" title="复制提示词 74 次"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>复制 74</span>
                   </div>
                 </div>
               </article>
@@ -1302,7 +1302,7 @@
                     <span class="s06-meta-item" title="可见性：公开"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>公开</span>
                     <span class="s06-meta-item s06-ver">v0.2.0</span>
                     <span class="s06-meta-item">开发工具</span>
-                    <span class="s06-meta-item" title="下载量"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>94</span>
+                    <span class="s06-meta-item" title="复制提示词 22 次"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>复制 22</span>
                   </div>
                 </div>
               </article>
@@ -1325,7 +1325,7 @@
                     <span class="s06-meta-item" title="可见性：公开"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>公开</span>
                     <span class="s06-meta-item s06-ver">v0.1.3</span>
                     <span class="s06-meta-item">界面</span>
-                    <span class="s06-meta-item" title="下载量"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" x2="12" y1="15" y2="3"></line></svg>12</span>
+                    <span class="s06-meta-item" title="复制提示词 12 次"><svg viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>复制 12</span>
                   </div>
                 </div>
               </article>
@@ -1838,7 +1838,7 @@
         <li>索引源地址、安装文档地址统一走 <code>/dsh/</code> 前缀，示例域名为 <code>skillhub.example.com</code>。</li>
         <li>深色态、移动端断点、空态与错误态未在本文件展开，实现时按现有设计系统补充。</li>
         <li>所有用户可见文案需进 i18n（zh / en / ko / ru），本原型只提供中文。</li>
-        <li>本原型对应 PRD v2.17（443 行）；与 PRD 冲突时以 PRD 为准，本文件不承担需求定义。</li>
+        <li>本原型对应 PRD v2.20（461 行）；与 PRD 冲突时以 PRD 为准，本文件不承担需求定义。</li>
       </ul>
     </div>
   </section>

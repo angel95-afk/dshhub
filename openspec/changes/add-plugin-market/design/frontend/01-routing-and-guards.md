@@ -19,6 +19,8 @@
 
 新增路由必须在 `router.tsx` 内懒加载（`createLazyRouteComponent`），与既有页面一致。
 
+**提交页返回入口固定目标（PRD §6.1 v2.20 ③）**：`/dashboard/plugins/submit` 页头的 ghost + ArrowLeft 返回按钮文案固定「返回我的插件」，**固定返回 `/dashboard/plugins`**，不读 `returnTo`、不依赖浏览器后退、不按来源改目标（v2.19 的"无来源回退 `/plugins`"口径作废）。该按钮是产品意图，**不代表真实发布页代码已新增**（header 的 "intentionally omitted" 决定见 §14.2 开放问题 Q13）。
+
 **`/dashboard/publish` 是回归红线（handover 缺口 #7）**：插件提交是**新页面**（`/dashboard/plugins/submit`），`/dashboard/publish` 保持"发布技能"语义不变，本变更只在它的入口区加一个指向插件提交的次按钮。硬约束：
 
 1. 不改 `dashboardPublishRoute.validateSearch` 的 6 个查询参数：`namespace`、`visibility`、`updateName`、`updateSkill`、`resubmitSkill`、`resubmitVersion`（`web/src/app/router.tsx:390` 起的 `validateSearch`）。这些深链来自"更新技能/重新提交"按钮，任何改名或收窄都会让既有入口静默失效。

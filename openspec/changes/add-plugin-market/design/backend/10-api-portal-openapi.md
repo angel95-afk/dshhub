@@ -1,4 +1,4 @@
-# §7.2　需登录接口的 OpenAPI paths（单块 YAML，不要拆）
+# §7.2　需登录接口的 OpenAPI paths（3 块 YAML，不要继续拆）
 
 > 所属：后端　｜　覆盖章节：§7.2
 > 章节号全局唯一、不随文件移动；跨文件引用写 `§N.M`，不要写文件名。索引见 [`../README.md`](../README.md)。
@@ -100,6 +100,7 @@ paths:
         **四种来源（npm / git / zip / folder）都必须携带 `visibility`**（`PUBLIC` / `NAMESPACE_ONLY` / `PRIVATE`，必选、无留空、无服务端默认值，
         `PRD §6.3` v2.16）：缺失或非法 → 400 `PLUGIN_VALIDATION_VISIBILITY_INVALID`，**不得**兜底成 `PUBLIC`
         （"没选就公开"是安全事故，不是便利）。可见范围与"空间是否公开"是两个正交维度，落库后共同决定可见性与状态文案（`PRD §8.4`）。
+        **调用时机（PRD §6.3 v2.19 ⑨）**：本端点是**唯一受理入口**，只能由「确认提交信息」弹窗的「确认发布」触发；第一步「下一步：确认」只打开弹窗，不得预调本端点、不得预建 submission 或提前返回 `submissionId`。未确认前无受理记录、无状态推进；服务端无需持久化"待确认"态（表单是纯前端状态）。两步时序见 §4.1、状态机见 §5.3、组件见 §10.2。
       requestBody:
         content:
           application/json:
@@ -309,7 +310,23 @@ paths:
         - { name: page, in: query, schema: { type: integer, default: 0 } }
         - { name: size, in: query, schema: { type: integer, default: 20 } }
       responses:
-        '200': { description: 我提交的插件（含 PENDING/REJECTED/HIDDEN/BLOCKED 与裁决列）；全部筛选在后端完成，前端不做二次过滤 }
+        '200':
+          description: 我提交的插件（含 PENDING/REJECTED/HIDDEN/BLOCKED 与裁决列）；全部筛选在后端完成，前端不做二次过滤
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      description: 既有「我的插件」列表投影（包名 / 状态 / 可见范围 / 裁决 / 最新版本）全部保留，此处只显式声明本次补入的计数字段
+                      required: [promptCopyCount]
+                      properties:
+                        promptCopyCount: { type: integer, format: int64, description: '复制提示词次数；与详情页、市场卡片读同一个 plugin.prompt_copy_count 字段、同一句文案（PRD §10 三处同源，v2.20 S06），不下发 viewCount' }
+                  total: { type: integer }
 
   /api/v1/dashboard/namespaces/{slug}/plugins:
     get:
@@ -681,8 +698,9 @@ paths:
 |---|---|
 | `latestVersion` | 只读，当前最新 `LISTED` 版本（按 `publish_timestamp` 取最大值）。页面上没有任何控件能改变它 |
 | `installPrompt` | 服务端渲染好的整句：`请按照 {publicBaseUrl}/dsh/install/{ns}/{slug}/{version}.md 安装 DSH 插件 {packageName}@{version}。` 两处 `{version}` **由同一个变量拼两次**；前端不得拼、不得替换、不得二次模板化 |
-| `versions[]` | **降为只读历史**：版本号 / 上架时间 / `engines.dsh` / 裁决徽标 / 是否已撤版。**不含**逐版本提示词、**不含**逐版本复制或安装入口、**不含**安装文档路径字段。多给一个可复制版本，就等于让用户能装到一个"当前详情页没在卖"的版本，`PRD §5.2` 的"永远指向确定版本"当场失效 |
+| `versions[]` | **降为只读历史**：版本号 / 上架时间 / `engines.dsh` / 来源（只写 `npm` / `git`，**不展示内部主机名、registry 域名、仓库主机地址**，PRD §5.1 v2.19 ⑧）/ 是否已撤版 / 「最新」标记。**不显示「该版本裁决徽标」**（PRD §5.1 v2.19 ③）。**不含**逐版本提示词、**不含**逐版本复制或安装入口、**不含**安装文档路径字段。多给一个可复制版本，就等于让用户能装到一个"当前详情页没在卖"的版本，`PRD §5.2` 的"永远指向确定版本"当场失效 |
 | 不做 | 不做 `VersionSelect`（下拉 / 单选 / 输入框都不做）、不接受 `?version=` 查询参数、不提供按版本的 `installPrompt`（§16 S19 有 DOM 断言 + 接口断言） |
+| 不展示披露（PRD §1.1/§1.2/§5.1/§7 v2.20 ②） | 详情 DTO **不下发**裁决 / 能力清单 / 红线列表 / `文件:行号` 证据 / 字面量去向 / 扫描器版本与时间 / 风险摘要 / 免责说明等任何披露字段；卡片 / 列表 / 详情均无裁决徽标，安装文档不附摘要。**判定规则、四裁决、扫描契约、证据生成本身一概不变**——完整报告与证据仍在治理侧审核页（§4.6、§7.2 `GET /scan-reports/{id}`）与包内文件浏览（§4.7、§7.6）、以及提交者视图。扫描只作上架闸门 + 治理侧审核依据，用户侧本期不展示披露 |
 
 **为什么渲染必须放服务端**：提示词里有两处版本必须一致。前端拼就会出现"URL 段刷新了、`@version` 还是旧值"这类中间态；服务端一个变量拼两次，天然一致，前端只做 `navigator.clipboard.writeText(resp.installPrompt)`。
 

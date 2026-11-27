@@ -1,4 +1,4 @@
-# §16 + 附　任务拆分建议、改造前回归保护、S1–S24 安全断言、接触点清单
+# §16 + 附　任务拆分建议、改造前回归保护、S1–S26 安全断言、接触点清单
 
 > 所属：总体设计　｜　覆盖章节：§16 + 附
 > 章节号全局唯一、不随文件移动；跨文件引用写 `§N.M`，不要写文件名。索引见 [`README.md`](README.md)。
@@ -19,6 +19,8 @@
    - `ReviewSubjectType.PLUGIN_VERSION` + `PluginReviewDecisionService` + `ReviewService` 的显式拒绝：拆开会让插件版本进入技能发布分支。
    - 审核通过 → `APPROVED` → worker 代发 → `LISTED` 这一整段：拆开会出现"审核通过了但没人发"的黑洞，作者永远停在「已通过审核，等待发布」而系统里没有一处会推进它。同批必须包含 `next_attempt_at` 的出队逻辑与「重试发布」端点。
    - **审核页包内文件浏览：三个端点 + `PluginFileBrowser` + §16 的 S1–S13 断言**：拆开会出现"能看内容但没有 `text/plain`/`nosniff`/CSP 与前端禁用 `innerHTML` 的约束"——那是一个已经上线、但把未审核 HTML/SVG 直接渲染在自己域名下的预览面。**响应头与前端渲染约束必须和端点同一个 PR**，不允许"先上功能再补安全"。
+   - **两步提交（`ConfirmSubmitDialog` + §4.1 时序 + §5.3 入口 + §7.2 POST 时机）+ S25 断言**：拆开会出现"弹窗打开了但提交已发出"或"返回编辑后留下一条受理记录"——未确认即受理是产品契约破坏，必须同批交付；且**不得**以"先做单步提交、后补确认弹窗"的增量上线，那会让中间态出现无确认的提交入口。
+   - **用户侧披露全撤（删 `PluginSecurityDisclosure` + 治理侧完整报告 + 包内文件浏览 + 提交者视图；安装文档无能力摘要、用户侧无免责常驻）+ S26 断言**（v2.20 ② 收紧，v2.19 的"详情页下沉 + 安装文档一行摘要 + 免责常驻"口径作废）：这是"证据展示在哪一侧"的纯展示侧调整，**必须与判定规则/四裁决/扫描契约保持同一版本**，不得出现"用户侧已删但治理侧报告还没接好"的断档——那会让需确认/有红线的插件在两侧都看不到证据。
 4. **可独立并行的两条线**：前端页面（依赖生成的 OpenAPI 类型，可与后端并行，先对 mock）与 scanner 侧（独立容器，契约冻结后即可并行）。
 5. **跨任务共享的产物要先冻结**：`pluginKey` 规则、索引键名、指针对象结构、`errorCode` 取值集合、i18n key 命名。这五项一旦变动会波及所有任务，应在第一个任务里定稿。
 
@@ -83,6 +85,15 @@
 | S23 | **索引只收 `PUBLIC`**：`NAMESPACE_ONLY` / `PRIVATE` 可见范围的插件、以及私有空间下的任何插件，**绝不出现在** `/dsh/index.json`（即使其下版本全部 `LISTED`）；可见范围非 `PUBLIC` 是**收录过滤**而不是构建失败——同一份索引里其余 `PUBLIC` 插件必须正常产出、指针必须照常切换。正例：三个夹具插件（`PUBLIC` / `NAMESPACE_ONLY` / `PRIVATE`）同批入库，索引 `plugins[].name` 集合恰为 `PUBLIC` 那一个，另两个的包名与 `pluginKey` 在索引字节里 grep 不到。反例：把该 `PUBLIC` 插件改成 `NAMESPACE_ONLY` → 下一轮重建后条目必须消失（`markDirty` 已触发、`gen` 前进、指针切换、`dirty=false`）；若索引里仍留着它，或因它整份构建失败，即失败（§8.1 收录前置条件；注意 §8.4 的 17 条强校验**不含**可见范围——非 `PUBLIC` 是**过滤**，不是构建失败） | ① 生成器单测：`{PUBLIC, NAMESPACE_ONLY, PRIVATE} × {公开空间, 私有空间}` 四个夹具各一个插件，断言索引里 `plugins[].name` 的集合恰为「公开空间 + `PUBLIC`」那一个；② 切可见范围后重建用例：断言新 `gen` 对象里条目消失、`current.json` 已切换、`plugin_index_state.dirty=false`；③ 断言"过滤 ≠ 失败"：非 `PUBLIC` 存在时 `last_error` 仍为空、§8.4 的 17 条强校验全过；④ 索引字节 grep：非 `PUBLIC` 插件的 `package_name`、`pluginKey`、`icons/{pluginKey}.*` 均不出现；⑤ 真机交叉：DSH 添加索引源后只能搜到 `PUBLIC` 那个 |
 | S24 | **范围外用户一律"看不见"，文案按 §8.4 判定表**：`NAMESPACE_ONLY` 插件对非该空间成员、`PRIVATE` 插件对非作者、私有空间插件对非成员——**详情页 403**（不泄漏存在性，不返回空列表、不渲染空态），**安装文档与 `/dsh/*` 下该插件任何路径 404**（两套语义不合并，§13 #18）；状态文案按判定表三档：`NAMESPACE_ONLY` →「仅命名空间」、`PRIVATE` →「私有」、私有空间下的 `PUBLIC`/`NAMESPACE_ONLY` →「已通过（仅空间内可见）」，且**必须**由 DTO 的 `visibility` + `namespace.isPublic` 两个字段判定，前端不得按"空间是否公开"单维推断。正例：空间成员打开 `NAMESPACE_ONLY` 插件 → 200 +「仅命名空间」+ 对应稳定说明句。反例：非成员拿到 200、403 与 404 被合并成同一个码、或 `NAMESPACE_ONLY` 在公开空间里显示「已上架」（按空间猜的典型表现）——任一出现即失败（§8.1、§8.4） | ① 权限矩阵参数化：4 行判定表 × `{匿名, 非成员, 空间成员, 作者, 空间 ADMIN, 平台管理员}` × `{详情页, 安装文档}`，逐格断言 200 / 403 / 404 与表一致；② 文案快照：四语言 × 三档文案 + 三条稳定说明句（`NAMESPACE_ONLY` / `PRIVATE` / 私有空间）逐字符比对，缺任一语言即失败；③ 反例单测：把 DTO 的 `namespace.isPublic` 置 `true` 而 `visibility=NAMESPACE_ONLY`，断言渲染出的仍是「仅命名空间」而非「已上架」（证明判定入口读的是两个字段）；④ 复跑 S20 的 grep 门禁：新增文案不得含「代发 / 内部源 / 私服 / 推送」；⑤ 与 S23 共用夹具做交叉断言：同一条目既不在索引里、也对范围外用户不可见 |
 
+### 两步提交与用户侧披露全撤的回归断言（S25–S26，随 `PRD §6.3`/`§5.1`/`§7` v2.19 引入、v2.20 ② 收紧）
+
+这两条守两步提交与"用户侧不展示任何披露"两个核心改动（v2.20 把 S26 从"详情页下沉"收紧为"用户侧全撤"），验收条目仍 27 条（不新增 PRD 验收），只是把设计契约写成"故意做错就红"的门禁。
+
+| # | 断言 | 手段 |
+|---|---|---|
+| S25 | **未确认不改状态**：提交页第一步「下一步：确认」**只打开** `ConfirmSubmitDialog`，不得 `POST /submissions`、不得产生 `submissionId` / 受理记录 / 审计 / 状态；弹窗「返回编辑」或右上关闭放弃本次确认，系统里仍无该提交；只有点「确认发布」才发**一次** `POST` 并进入 `RECEIVED`。正例：确认前查 `GET /submissions?terminal=false` 无该 `name@version` 行；点确认后恰有一条 `PLUGIN_SUBMISSION_CREATED`。反例：点「下一步」即收到 202、弹窗打开时进度视图已出现、「返回编辑」后仍留下 submission——任一出现即失败（§4.1、§5.3、§7.2、§10.2） | ① 前端单测：spy `POST /submissions`，点「下一步」断言调用次数 0、「确认发布」断言恰好 1 次；②「返回编辑」用例断言无 mutation、无 `invalidate(inFlight)`；③ 集成测试：确认前直查 submissions 表无行、确认后恰一行 + 一条审计；④ 可见性联动：表单改 `visibility` 后弹窗「可见性」行即时同步（同一 DTO 字段，不另存副本） |
+| S26 | **用户侧不展示任何披露、治理侧仍完整**（v2.20 ② 收紧）：详情页 / 市场卡片 / 安装文档 / 索引文件 DOM 中**不存在**能力清单 / 红线列表 / `文件:行号` 证据折叠 / 扫描器版本时间 / 裁决徽标 / 风险摘要 / 免责说明（`security-disclosure`、`verdict-meta`、`capability-labels`、`red-line-labels` 组件均不被用户侧页面引用）；详情页只留只读版本历史 / 安装区 / README。市场卡片无浏览数、无「复制提示词」按钮、无裁决徽标，复制次数与详情页同源。版本列表每行无「该版本裁决徽标」、来源只写 `npm`/`git`（无内部主机名/registry 域名）。**判定规则 / 四裁决 / 扫描契约 / 证据生成本身一概不动**——治理侧审核页完整报告、包内文件浏览与提交者视图仍可读到全部证据。正例：`/scan-reports/{id}` 仍返回完整证据；反例：用户侧任何界面渲染出证据片段 / 徽标 / 摘要 / 免责、浏览数进入任何界面、版本列表出现第二处来源判定——任一出现即失败（§1.1/§1.2、§5.1、§7.2.1、§7.3、§9、§10.2、§11 验收 23–24） | ① 前端 DOM 断言：详情页与卡片 `querySelector` 不到能力/红线/证据/徽标/免责节点；② 静态门禁 grep：`pages/plugin-detail.tsx` 与 `pages/plugins.tsx` 不 import `security-disclosure` / `verdict-meta` / `capability-labels` / `red-line-labels`；③ 接口断言：`security-scan` 匿名端点不返回裁决/能力/红线/证据/摘要字段，`/scan-reports/{id}` 仍含完整证据；④ 列表投影断言：`PluginPage.items[]`（市场卡片）与 `GET /api/v1/dashboard/plugins` 的 `items[]`（「我的插件」）**都含** `promptCopyCount`、都不含 `viewCount` 与任何 verdict 字段，且两处与详情页读同一个 `plugin.prompt_copy_count`（PRD §10 v2.20 S06 三处同源）；⑤ 复跑 S18/S19：来源唯一判定点与"无版本选择器"仍成立（v2.20 只改展示侧，不动这两条） |
+
 ---
 
 ## 附：与既有代码的接触点清单（供评审逐条核对）
@@ -97,6 +108,8 @@
 | `server/skillhub-app/src/main/resources/application.yml` | 加配置块 | `skillhub.plugin.*`（见 §11.1） |
 | `web/nginx.conf.template` | 加 location | `^~ /dsh/`（见 §11.2） |
 | `web/src/app/router.tsx` | 加 5 条路由 | 见 §10.1；**不动** `dashboardPublishRoute.validateSearch` 的 6 个参数（§10.1 回归红线） |
+| `web/src/features/plugin/confirm-submit-dialog.tsx` | 新增 | `ConfirmSubmitDialog`：两步提交第二步确认弹窗，与技能发布页 `publish.tsx` 同款五行（显示名称 / `@namespace/name@version` / 可见性与表单联动 / 简介 / 末行审核说明文案复用 `publish.reviewNotice.description`）；「返回编辑」outline +「确认发布」primary；**只有确认发布发 POST**（PRD §6.3 v2.19 ⑨、§16 S25） |
+| `web/src/features/plugin/submit-back-button.tsx` | 新增 | 页头 ghost + ArrowLeft 返回按钮；**固定返回「我的插件」`/dashboard/plugins`，不读 `returnTo`、不依赖浏览器后退、不按来源改目标**（PRD §6.1 v2.20 ③；v2.19 的 normalizeSkillDetailReturnTo 口径作废；真实发布页是否覆盖 header 决定见 §14.2 Q13，产品意图不写成已实现） |
 | `web/src/features/report/report-text.ts` | 复用不改 | 举报理由码文案与插件侧共用（`misleading/malicious/license/spam/other`） |
 | `web/src/features/plugin/review-files.tsx` | 新增（**薄层**） | `PluginFileBrowser`：数据接入 + 布局 + 安全约束。树/高亮/类型判定**复用** `features/skill/{file-tree*,code-renderer.tsx,file-type-utils.ts}`，不重写；**禁 `innerHTML` / `dangerouslySetInnerHTML` / `iframe` / `object` / `embed`**（§10.2、§16 S4） |
 | `server/skillhub-app/.../controller/PluginSubmissionFileController.java` | 新增 | 三个只读端点。响应头三件套（`text/plain; charset=utf-8` / `nosniff` / `CSP default-src 'none'; sandbox` / `no-store`）在控制器上写死，不依赖全局默认——全局一处改动就能把它们抹掉（§7.2、§16 S1–S3） |

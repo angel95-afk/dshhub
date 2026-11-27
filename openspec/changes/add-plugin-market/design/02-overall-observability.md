@@ -50,7 +50,9 @@
 | 审核页包内文件清单 | `plugin.stagedfile.duration{op=index}` P95 | 缓存命中 **< 100ms**；首次 **< 2s** @ 50 MiB 包 | 服务端耗时（不含网络） | 首次慢先看解压是否在请求线程里做了多余拷贝；命中率低查 `..._INDEX_CACHE_TTL/MAX` 与多副本分布 |
 | 审核页单文件读取 | `plugin.stagedfile.duration{op=entry}` P95 | **< 300ms**（目标条目靠后的文件最坏要走过整条流） | 服务端耗时 | 查是否每次重开对象、是否把整包读进内存（应流式） |
 
-列表 P95 之所以能压在 300ms：列表只读 `plugin` 单表 + `latest_version_id`（不 join 版本表、不聚合统计），统计数字由 `plugin_stat_daily` 的冗余计数字段直接读，不做实时 `count(*)`。若后续要按统计排序，另建物化视图，不在线上列表里 join。
+列表 P95 之所以能压在 300ms：列表只读 `plugin` 单表 + `latest_version_id`（不 join 版本表、不聚合统计），统计数字由 `plugin.prompt_copy_count` 冗余计数字段直接读，不做实时 `count(*)`。若后续要按统计排序，另建物化视图，不在线上列表里 join。
+
+**统计口径同源（PRD §10 v2.19 ①，v2.20 补「我的插件」列表）**：`prompt_copy_count` 是**唯一**对外展示的计数——详情页、市场卡片（`GET /api/v1/plugins` 的 `items[]`）与「我的插件」列表（作者视角，原型 S06，v2.20 裁决把下载量换成复制量）读**同一个** `plugin.prompt_copy_count` 字段、用**同一句**文案（"按来源去重，内网共用出口时会偏低，仅供参考"）。市场卡片投影必须带 `promptCopyCount`（与详情 DTO 同源），「我的插件」列表同样带该值且与该插件的市场卡片同数；**三处都不带浏览数**：`view` 事件只落 `plugin_stat_event`/`plugin_stat_daily`，`v1` 不进任何界面、不进列表投影、不向作者开放。全站无"安装量 / 下载量"字样。
 
 ### 12.2 日志字段（禁凭据）
 

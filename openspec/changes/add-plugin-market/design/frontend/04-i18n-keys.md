@@ -16,7 +16,7 @@ namespaceManagement.plugins
 plugin.market.title / .subtitle
 plugin.market.indexSource.title / .subtitle / .copy / .copied
 plugin.market.indexSource.step1 / .step2 / .step3
-plugin.market.indexSource.httpWarning
+                                          （**已删除 `httpWarning` 键**：PRD §4.1 v2.19 ⑥ 删去 `http:` 警告与"索引源属于当前 profile"整句；市场页只铺三步，不展开 `format: 1` 与安全提示；相关术语定义仍在 PRD §2，不得据此在页面加提示）
 plugin.market.indexSource.status.loading / .error / .empty / .ready
 plugin.market.categories.all
 plugin.market.category.{agent|ui|memory|communication|devtools|search-knowledge|data|security|other}
@@ -26,9 +26,10 @@ plugin.market.loadMore
 plugin.market.empty.clearFilters
 plugin.market.error.retry
 
-plugin.card.copyCount
-plugin.card.verdict.review              → 需确认
-plugin.card.verdict.red                 → 有红线
+plugin.card.copyCount                   → 复制提示词次数（卡片与详情页**同源同文案**，标注"按来源去重，仅供参考"；PRD §10/§11 验收 22 v2.19 ①。**不得新增浏览数字段/键**——浏览只落库、不进任何界面）
+plugin.market.onlyFavorites             → 仅看收藏（v2.20 ④ 按原型 S03 补入的筛选开关；默认关闭）
+plugin.market.sort.copyCount            → 复制最多（v2.20 ④ 按原型 S03 补入的排序项；默认排序仍为发布时间倒序）
+（**v2.20 ② 起用户侧市场卡片不渲染任何裁决徽标**：`plugin.card.verdict.*` 三个键**不删**，但仅供提交者 / 治理侧的「我的插件」列表与审核页使用，公开市场卡片与详情页不再挂载）
 
 plugin.detail.packageName.copy / .copied
 plugin.detail.install.title
@@ -36,6 +37,7 @@ plugin.detail.install.versionLabel
 plugin.detail.install.promptLabel
 plugin.detail.install.copyPrompt
 plugin.detail.install.copied
+（v2.20 ④：`equivalentCommand` / `ignoreScriptsHint` 两键**详情页不再渲染**——详情页不展示等价命令；等价命令仍在 §5.3 安装文档内给 Agent，键保留不删）
 plugin.detail.install.equivalentCommand
 plugin.detail.install.ignoreScriptsHint
 plugin.detail.source.npm / .git
@@ -44,8 +46,12 @@ plugin.detail.source.resolvedHint → 以上为服务端解析结果，不是提
 plugin.detail.engines.undeclared        → 未声明，装前请自行确认
 plugin.detail.versions.title
 plugin.detail.versions.current
+plugin.detail.versions.latest           → 最新（版本列表「最新」标记；PRD §5.1 v2.19 ③）
 plugin.detail.readme.snapshotNotice
+（v2.20 ②：`plugin.detail.disclaimer.line` **详情页不再渲染**——用户侧本期不展示免责说明，键保留不删、供治理侧备用）
+plugin.detail.disclaimer.line
 
+                                          （**v2.20 ② 起下列 `plugin.scan.*` 判定/能力/红线/证据/指纹键全部只在治理侧与提交者视图使用**；详情页 / 市场卡片 / 安装文档均不再渲染披露，但键本身**不删**——完整报告在治理侧审核页展开，§7.3。判定规则与四裁决文案不变）
 plugin.scan.verdict.clear               → 未检出风险信号
 plugin.scan.verdict.review              → 需确认
 plugin.scan.verdict.red                 → 有红线
@@ -76,7 +82,14 @@ plugin.submit.visibility.label / .help    （右栏「发布设置」区第二�
 plugin.submit.category.label / .help
 plugin.submit.autoParsed.title / .readonlyHint
 plugin.submit.checklist.title / .item.{...}
-plugin.submit.action.submit / .cancel
+plugin.submit.action.next                 → 下一步：确认（第一步唯一按钮，只打开确认弹窗、不提交）
+plugin.submit.action.nextHint             → 提交前将再次核对版本与展示信息
+plugin.submit.confirm.title               → 确认提交信息（第二步弹窗，PRD §6.3 v2.19 ⑨）
+plugin.submit.confirm.displayName / .packageVersion / .visibility / .summary / .reviewNote
+                                          （弹窗五行，与技能发布页 `publish.tsx` 同款：显示名称 / `@namespace/name@version` / 可见性 / 简介 / 末行审核说明文案——复用 `publish.reviewNotice.description`"提交后的处理取决于可见性和安全扫描策略。请以本次提交回执及版本状态为准。"；可见性行与表单 `VisibilitySelect` 联动即时同步，PRD §6.3）
+plugin.submit.confirm.backToEdit          → 返回编辑（outline）
+plugin.submit.confirm.publish             → 确认发布（primary，**唯一发起 POST 的入口**）
+plugin.submit.back                        → 返回我的插件（ghost + ArrowLeft；**固定返回「我的插件」`/dashboard/plugins`**，不靠浏览器后退、不按来源改目标；产品意图 PRD §6.1 v2.20）
 plugin.submit.capability.disabled.reviewNotReady       → 审核将在治理阶段开放
 plugin.submit.capability.disabled.publishDisabled        → 插件提交暂时关闭，请稍后再试
 plugin.submit.capability.disabled.spaceNotEnabled        → 该空间尚未开放插件提交
@@ -93,7 +106,8 @@ plugin.mine.noInstallableVersion          → 已无可安装版本
 plugin.mine.inFlight.waiting              → 已等待 {duration}
 plugin.mine.inFlight.editPackage          → 改包后重新提交
 plugin.mine.filter.q / .status / .namespace / .category / .verdict / .inFlight
-plugin.table.column.plugin / .version / .status / .category / .verdict / .actions
+plugin.table.column.plugin / .version / .status / .category / .verdict / .copyCount / .actions
+                                          （`.copyCount` 为「我的插件」列表的复制提示词次数列，与 `plugin.card.copyCount` 同源同字段同文案、取 `promptCopyCount`，PRD §10 v2.20 S06；**不得新增浏览数列/键**）
 plugin.table.action.view / .hide / .restore / .reason / .resubmit / .rescan / .review
 plugin.table.action.yank / .unyank / .delete / .releaseName
 plugin.table.action.yankConfirm / .deleteConfirm / .releaseNameConfirm
@@ -181,7 +195,7 @@ plugin.disclaimer.neverSaySafe           （文案契约自检用；不渲染）
 | 场景 | 页面原文 |
 |---|---|
 | 撤掉最后一个可上架版本后（作者在「我的插件」看到） | 已无可安装版本 |
-| 未上架 / 待审核 / 已通过待发布（非成员访问） | 详情页与安装文档一律 404，不返回任何内容（不写"审核中"、不写"未上架"） |
+| 未上架 / 待审核 / 已通过待发布（非成员访问） | **详情页 403、安装文档 404，两套语义不合并**（PRD §8.4/§9；均不返回任何内容、不写"审核中"、不写"未上架"） |
 | 恢复被撤版本时私服已取不到制品（409 `publishArtifactMissing`） | 该版本制品已不存在，请重新提交该版本 |
 | 包名在黑名单（409 `packageNameBlocked`） | 该包名已被限制，请联系管理员 |
 | 包名已软删未释放（409 `packageNameReserved`） | 该包名已被下架，名额未释放 |

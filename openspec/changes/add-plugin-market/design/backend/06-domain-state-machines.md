@@ -109,9 +109,11 @@ stateDiagram-v2
 
 ### 5.3 `plugin_submission`
 
+**入口前的用户确认（PRD §6.3 v2.19 ⑨）**：`RECEIVED` 只能由**确认弹窗点「确认发布」后发出的那一次** `POST /submissions` 受理产生。第一步「下一步：确认」只打开 `ConfirmSubmitDialog`，**不发请求、不建 submission、不产生任何状态或审计**；弹窗「返回编辑」放弃本次确认回到表单。本状态机不含"待确认"态——**未确认前系统里不存在该提交**，因此 `DRAFT` 也不对应任何库行（表单是纯前端状态）。两步时序见 §4.1，API 调用时机见 §7.2。
+
 ```mermaid
 stateDiagram-v2
-    [*] --> RECEIVED: 同步校验通过 (202)
+    [*] --> RECEIVED: 确认发布 → 同步校验通过 (202)
     RECEIVED --> MATERIALIZING: worker claim
     MATERIALIZING --> VALIDATION_FAILED: 包名/版本与声明不符 / 来源不可达(非重试)
     MATERIALIZING --> RECEIVED: 可重试 (网络/5xx), 记 attempt + backoff

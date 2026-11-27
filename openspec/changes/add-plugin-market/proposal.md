@@ -2,18 +2,18 @@
 
 ## Why
 
-本站目前只托管一类资产：SkillHub 技能（`SKILL.md` 包）。DSH 自身还有另一套扩展机制——**DSH 插件**（npm 包 + `dsh.bundle` 声明 + `dsh plugin add` 安装），二者形态、安装入口、可获得能力完全不同。DSH 官方已定义**插件市场索引协议**（`format: 1` 的 JSON 索引），用户可在「插件 → 实验性插件 → 自定义插件索引」中添加索引源 URL 后浏览安装。本站要做的正是**成为这样一个索引源**，并承接组织内部的插件提交、扫描披露与命名空间治理。
+本站目前只托管一类资产：SkillHub 技能（`SKILL.md` 包）。DSH 自身还有另一套扩展机制——**DSH 插件**（npm 包 + `dsh.bundle` 声明 + `dsh plugin add` 安装），二者形态、安装入口、可获得能力完全不同。DSH 官方已定义**插件市场索引协议**（`format: 1` 的 JSON 索引），用户可在「插件 → 实验性插件 → 自定义插件索引」中添加索引源 URL 后浏览安装。本站要做的正是**成为这样一个索引源**，并承接组织内部的插件提交、扫描闸门与命名空间治理。
 
-需求正文见 `../../../docs/prds/plugin-market/plugin-market-v1.0-prd.md`（现行 v2.14，13 节 / 29 子节，验收条数 27 条起、v2.14 的增补以 PRD 正文为准；章节号自 v2.1 起未变；v2.13 收窄 npm 包名来源口径、v2.14 新增「审核页可查看包内文件内容」）与交互原型 `../../../docs/prds/plugin-market/plugin-market-v1.0-prototype.html`（7 屏）。本变更把该需求落成可实施的工程契约；**本文件不重复 PRD 的字段清单与页面细节，只说明本次变更做了什么、破坏了什么、怎么迁移**。技术方案、DDL、接口、状态机全部在 `design/README.md`。PRD 与设计不一致之处一律记入 `design/README.md` §13 偏离清单（共 21 条），PRD 正文不再改动。
+需求正文见 `../../../docs/prds/plugin-market/plugin-market-v1.0-prd.md`（现行 **v2.20**（2026-11-27 冻结，461 行，状态 Frozen（已与 design 对齐）），13 节 / 27 条验收；章节号自 v2.1 起未变；v2.13 收窄 npm 包名来源口径、v2.14 新增「审核页可查看包内文件内容」、v2.19 按定稿原型同步 11 条裁决、v2.20 按用户裁决删除产品目标 4 + 用户侧披露全撤 + 返回固定回我的插件 + 修复原型旧措辞；判定规则与四裁决不变）与交互原型 `../../../docs/prds/plugin-market/plugin-market-v1.0-prototype.html`（9 屏 S01–S09）。本变更把该需求落成可实施的工程契约；**本文件不重复 PRD 的字段清单与页面细节，只说明本次变更做了什么、破坏了什么、怎么迁移**。技术方案、DDL、接口、状态机全部在 `design/README.md`。PRD 与设计不一致之处一律记入 `design/03-overall-deviations-risks-phasing.md` §13 偏离清单（共 22 条），PRD 正文不再改动。
 
-不做本次变更的代价：内部 DSH 插件没有合规分发与披露通道，用户只能靠口头或聊天记录里的包名自行猜测安装来源，且没有任何"装之前先看它会碰什么"的机制。
+不做本次变更的代价：内部 DSH 插件没有合规分发与审核闸门，用户只能靠口头或聊天记录里的包名自行猜测安装来源，且提交内容没有静态扫描把关（本期扫描只作上架闸门 + 治理侧审核，用户侧不展示披露）。
 
 ## What Changes
 
 ### 新增能力
 
 - **索引源与索引文件**：新增 `/dsh/index.json`（`format: 1`）、`/dsh/icons/{key}`、`/dsh/install/{namespace}/{slug}/{version}.md`（按版本）、`/dsh/install/{namespace}/{slug}.md`（旧路径别名，等价于最新 `LISTED` 版本，直接 200 不 302）、`/dsh/install/index.md`，全部匿名可读、无重定向、正确拼接 `SKILLHUB_WEB_BASE_PATH`。索引由后端物化为"版本化键 + 指针键"，读路径带 `ETag`/`Cache-Control: public, max-age=60` 与 304。
-- **插件目录**：`/plugins` 两模块页（索引源 → 列表）、`/plugins/{namespace}/{slug}` 详情（版本切换、安装提示词、能力披露、举报入口）。
+- **插件目录**：`/plugins` 上下平铺两段（索引源 → 插件列表，无模块卡片框，`PRD §4` v2.19 ⑦；v2.20 ④ 补「仅看收藏」开关与「复制最多」排序）、`/plugins/{namespace}/{slug}` 详情（只读版本历史、安装提示词、举报入口；**v2.20 ② 起用户侧不展示任何披露，完整证据只在治理侧审核页与包内文件浏览**）。
 - **四来源提交**：npm 包名 / 内网 Git / zip / 文件夹，收敛为官方协议允许的 `npm` 与 `git` 两种分发来源；zip 与文件夹由本站规范化 tarball 并代发到配置的 npm 私服。npm 来源**用户只填包名（可 scoped），表单无版本输入框、禁止手填版本**；版本由服务端取 registry `latest` 对应的**最新非预发布版本**（跳 prerelease），**提交那一刻冻结**进提交快照，扫描 / 审核 / 代发 / 上架全程复用、后续不重解析 latest（上游发新版不影响已上架版本，要上新版必须重新提交）；夹带 `version` 一律 400，重复提交撞 `name@version` 且 latest 未变则 409（npm 专属文案）。Git 来源 **v1 只做 SSH**（`skillhub.plugin.git.transport` 默认 `ssh`，HTTPS 后端只留端口不交付）：**用户只填仓库地址一个字段**（一插件一仓库、插件包在仓库根目录），**不接受子目录/分支/tag/commit，也不填任何凭据**（API 夹带 `path` 等字段一律 400 拒绝）；一律取默认分支最新提交（`ls-remote --symref` → `depth=1` 浅克隆 → 读 `HEAD`），版本指纹 = commit + branch + resolved_at。host key 必须 pin、私钥 secret 挂载 0600、非 root、双钥轮换；`POST /api/v1/plugins/git/preflight` 只做 `ls-remote`（含 host key 校验），**预检不读 package.json**，克隆后校验仓库根目录是否含 DSH 插件声明的 `package.json`（缺包即 `gitPackageNotFound`）。
 - **提交生命周期状态机**：新增 `plugin_submission` 表与状态机，HTTP 请求内只做毫秒级同步校验，扫描、代发、落库、索引重建全部异步。
 - **扫描闸门**：scanner 服务新增 `POST /scan-plugin-upload`，镜像内锁定 `dsh-trust-check` 精确版本；裁决 `red` 拒绝、`review`/`clear` 放行、`error` fail closed；红线放行、重扫、漂移自动下架全部写审计。
@@ -21,7 +21,7 @@
 - **审核页包内文件只读浏览**（v2.14 新增）：新增三个只读端点——`GET /api/v1/plugins/submissions/{id}/files`（清单：`path/size/binary/sensitive` + 包级 sha512，不含内容）、`.../files/content?path=`（单文件）、`.../files/download?path=`（字节下载），以及前端 `PluginFileBrowser`（**复用** `features/skill` 的 `file-tree` / `CodeRenderer` / `file-type-utils`，插件侧只做数据接入与布局，绝不重写可预览判定/二进制魔数/高亮）。数据源**只有** `plugin_submission.staged_tarball_key` 指向的暂存 tarball（审核发生在代发之前，私服里没有这个包；已按保留策略清理时返回 410，**绝不回退**去私服或上游 npm 拉同名同版本）。整组端点按「未审核内容永不进入浏览器执行上下文」设计：文本只以 `text/plain; charset=utf-8` + `X-Content-Type-Options: nosniff` + `Content-Security-Policy: default-src 'none'; sandbox` + `Cache-Control: no-store` 返回；二进制只回元信息（类型/大小/魔数），下载强制 `application/octet-stream` + `Content-Disposition: attachment`；前端只用文本节点渲染（禁 `innerHTML` / `dangerouslySetInnerHTML` / `iframe` / `object` / `embed`）。路径穿越三层防护（物化阶段拒绝 `..`/绝对路径/盘符/NUL/反斜杠/符号链接 → 请求层白名单**逐字节比对** → 读取层复核，`%2e%2e%2f` 双重编码与大小写绕过均有口径）；六项资源上限（文件数 2000 / 整包解压 200 MiB / 单文件 8 MiB / 文本预览 512 KiB / 压缩比 10:1 / 请求预算 5s+10s），**超限拒绝整次浏览而不是截断**；清单/单文件/下载三个动作各写审计（不记录内容），**审计写失败即不返回内容**。见 `design/README.md` §4.7、§6.4、§7.2、§7.6、§10.2、§14.1 A17/A18、§16 的 S1–S13。
 - **治理**：提交进现有审核队列（新增 `PLUGIN_VERSION` 主题类型）、下架/恢复、撤下单版本/恢复版本、软删插件、释放包名、黑名单、改分类、我的插件（含在途提交）、命名空间维度插件 tab、插件举报（只做入口 + 后台只读列表，不做处置流程）。**审核决定的权限按 `subjectType` 分流**：`PLUGIN_VERSION` 只允许该空间空间管理员（平台管理员 403，与包内文件浏览同一行矩阵依据）；`SKILL_METADATA` 等既有类型行为不变。另加**允许自审但留痕**（用户裁决）：`submitted_by == actor` 时 approve / reject 正常执行、不拦截，审计 `PLUGIN_REVIEW_APPROVED` / `PLUGIN_VERSION_REJECTED` 各带必填字段 `selfReview: true|false`；审核页在裁决按钮旁显示中性提示「你是本次提交的作者」（渲染条件来自服务端下发的 `isAuthor`）。队列项另下发 `canReview` / `canReviewReasonCode` / `canViewStagedFiles` 供前端置灰与提示（前端不推断角色）。
 - **统计**：`plugin_stat_event` / `plugin_stat_daily` 与卡片上的「复制提示词次数」。
-- **提交入口能力开关**：新增 `GET /api/v1/plugins/submit-capabilities`（能力由服务端下发，前端不硬编码分期）。**P0 仅开放个人空间提交**，团队空间三处入口（市场页头、我的插件页头、空间插件 tab）**置灰并说明「审核与撤包将在治理阶段同批开放」，不隐藏**（`PRD §6.1` 通用规则）；P1 审核 + 撤包同批就绪后翻 `SKILLHUB_PLUGIN_TEAM_SPACE_SUBMIT_ENABLED=true` 即开放，前端零改动。
+- **提交入口能力开关**：新增 `GET /api/v1/plugins/submit-capabilities`（能力由服务端下发，前端不硬编码分期）。**P0 仅开放个人空间提交**，团队空间三处入口（市场页头、我的插件页头、空间插件 tab）**置灰并说明「审核将在治理阶段开放」，不隐藏**（`PRD §6.1` 通用规则；文案逐字对齐 `PRD §12` P0 行，v2.8 链路反转后已无「撤包」概念）；P1 审核就绪后翻 `SKILLHUB_PLUGIN_TEAM_SPACE_SUBMIT_ENABLED=true` 即开放，前端零改动。
 
 ### BREAKING
 

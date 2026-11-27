@@ -8,54 +8,51 @@
 ```
 pages/plugins.tsx
 ├── PluginMarketHeader          (标题 + 「我的插件」outline + `PluginSubmitButton`，登录才渲染；按钮可用态见 §10.1 能力开关)
-├── PluginIndexSourceCard       (`PRD §4.1`)
+├── PluginIndexSourceSection    (`PRD §4.1`「索引源」段；**上下平铺两段的第一段，无模块卡片框、无「模块一/模块二」标题**，PRD §4 v2.19 ⑦)
 │   ├── IndexUrlCopyRow         (等宽 + 复制 2s 成功态)
-│   ├── IndexSourceSteps        (3 步)
+│   ├── IndexSourceSteps        (3 步；**只铺 DSH 入口三步，不展开 `format: 1` 协议、`http:`/`https:` 安全提示，也不写"索引源属于当前 profile"**——术语定义仍在 PRD §2，PRD §4.1 v2.19 ⑥)
 │   └── IndexStatusHint         (加载中/失败/空/正常 四态)
-└── PluginGridSection
-    ├── PluginToolbar           (搜索 debounce 300ms + 排序 + 结果数)
-    ├── PluginCategoryChips     (9 类 + 全部)
-    ├── PluginGrid → PluginCard (图标/标题/包名/简介/分类/版本/复制次数/需确认徽标)
+└── PluginGridSection           (`PRD §4.2`「插件列表」段；平铺两段中的第二段)
+├── PluginToolbar           (搜索 debounce 300ms + 「仅看收藏」开关 + 排序「最新 / 名称 A→Z / 复制最多」+ 结果数；默认排序仍为发布时间倒序，PRD §4.2 v2.20 ④)
+├── PluginCategoryChips     (9 类 + 全部)
+├── PluginGrid → PluginCard (图标/标题/包名/简介/分类/版本/复制次数；**复制次数与详情页同源、可展示，不显示浏览数、不放「复制提示词」按钮**，PRD §4.2/§10/§11 验收 2·4·22 v2.19 ①；**v2.20 ② 起不展示任何扫描裁决徽标**——用户侧不做披露)
     └── LoadMoreButton
 
 pages/plugin-detail.tsx
 ├── PluginDetailHeader          (图标/标题/包名复制/分类/作者/版本/更新时间/复制次数)
 │   ├── VisibilityStatusBadge   (状态文案三档：`NAMESPACE_ONLY`→「仅命名空间」、`PRIVATE`→「私有」、私有空间→「已通过（仅空间内可见）」、否则「已上架」；**由 DTO 的 `visibility` + `namespaceIsPublic` 判定**（§8.4、§16 S24），前端不按空间猜)
 │   └── PluginReportEntry       (举报入口：文字按钮「举报」+ 图标；登录才渲染，匿名点击走登录并回跳本页)
+├── (已删除) VerdictBadgeLine    (**v2.20 ② 起用户侧不展示任何裁决徽标**——产品目标 4 删除、用户侧本期不做披露；裁决与理由摘要只在提交者 / 治理侧可见，PRD §1.1/§1.2/§7)
 ├── VisibilityNoticeLine        (稳定说明句：仅命名空间 / 私有 / 所属空间为私有（§10.5 的 `plugin.visibility.notice.*`），非 `PUBLIC` 或私有空间才渲染)
 ├── PluginReadmePanel           (快照 Markdown，图片仅 https:)
-├── PluginVersionList           (只读历史：版本/时间/来源/engines/裁决徽标/是否已撤版；**不含**逐版本复制、安装或切换入口——多给一个可复制版本就等于让用户装到"详情页没在卖"的版本，`PRD §5.2` v2.15)
+├── PluginVersionList           (只读历史：版本/时间/来源/engines/「最新」标记/是否已撤版；**来源列只写 `npm` / `git`，不展示内部主机名、registry 域名或仓库主机地址** PRD §5.1 v2.19 ⑧；**不显示「该版本裁决徽标」** PRD §5.1 v2.19 ③；**不含**逐版本复制、安装或切换入口——多给一个可复制版本就等于让用户装到"详情页没在卖"的版本，`PRD §5.2` v2.15)
 ├── InstallPanel (sticky)
 │   ├── LatestVersionReadout    (只读版本号，无下拉/单选/输入框；页面上没有任何控件能改变它，§16 S19)
 │   ├── InstallPromptBox        (全站唯一提示词生成点)
-│   ├── EquivalentCommand       (折叠，含 --ignore-scripts)
+│   ├── (已删除) EquivalentCommand (**v2.20 ④ 起详情页不展示等价命令**，避免两种装法并存；等价命令仍在 §5.3 安装文档内给 Agent)
 │   ├── SourceInfo              npm：registry 地址；git：**仓库地址 + 提交号**
 │   │                           （两者都是服务端解析结果，不是用户原话；包固定在仓库根目录；PRD §5.1）
 │   └── EnginesInfo
-│   └── ScanReportLink          (指向完整扫描报告；原名 ReportLink 与"举报"易混，改名)
-└── PluginSecurityDisclosure
-    ├── VerdictBadge            (未检出风险信号 / 需确认 / 有红线 / 管理员已确认风险)
-    ├── CapabilityChips         (10 个能力 code → 中文)
-    ├── RedLineList             (5 个 code → 中文模板 + {占位})
-    ├── EvidenceCollapse        (文件:行号 + 片段)
-    ├── WaiverNotice            (放行者/时间/理由摘要)
-    └── DisclaimerBlock         (已知局限 5 条 + 工具版本/时间/指纹)
+└── (已删除) PluginSecurityDisclosure / VerdictBadge / VerdictBadgeLine / CapabilityChips / RedLineList / EvidenceCollapse / WaiverNotice / DisclaimerBlock / DisclaimerLine / EquivalentCommand —— **用户侧所有披露相关区块整块移除**（PRD §1.1/§1.2/§5.1/§7 v2.20 ②，原型 S03 / S04 裁决）。裁决/能力清单/红线列表/证据/字面量去向/扫描器版本与时间/免责说明**一概不在用户侧任何界面展开**（详情页、卡片 / 列表、安装文档、索引），只在治理侧：审核页完整报告（§4.6/§7.2）+ 包内文件浏览（§4.7/§7.6）。扫描只作上架闸门 + 治理侧审核依据。**判定规则、四裁决、扫描契约、证据生成本身一概不变**——只改"证据展示在哪一侧"、用户侧本期不展示。
 
 PluginReportDialog                (举报弹窗，挂在详情页：理由码下拉 + details(仅 other 必填) + 提交后「已收到，管理员会跟进」态)
 
 pages/dashboard/plugin-submit.tsx
+├── PluginSubmitBackButton      (**ghost + ArrowLeft** 返回按钮，页头「返回我的插件」；**v2.20 裁决：固定返回 `/dashboard/plugins`「我的插件」**，不读 `returnTo`、不依赖浏览器后退、不按来源改目标。**产品意图（原型 S05），不写成"已实现"**；真实发布页是否覆盖 header 的 "intentionally omitted" 待用户拍板，PRD §6.1/§13 Q6，见 §14.2)
 ├── PluginSubmitForm            (两栏 grid：主列 + 右侧 sticky 设置区；与技能发布页 `web/src/pages/dashboard/publish.tsx:442` 同构)
 │   ├── 主列
 │   │   ├── SourceTabs (npm/git/zip/folder)
 │   │   │   ├── NpmSourcePanel（只有包名一个输入框，可 scoped；无版本输入框，版本服务端取 latest 并冻结）
 │   │   │   └── GitSourcePanel（只有仓库地址一个输入框）/ ZipSourcePanel / FolderSourcePanel
 │   │   ├── CategoryPicker (9 选 1)
-│   │   ├── AutoParsedPanel     (只读：name/version/engines/repository/title/readme/icon)
-│   │   ├── SubmissionChecklist (提交前校验项 + 异步阶段说明；**从右栏移到这里**，非 sticky，位于自动解析块之后、提交按钮之前，条目不变)
-│   │   └── SubmitActions       (提交按钮 + 未就绪原因)
+│   │   ├── DisplayNameInput    (**可编辑**，默认取包内 `displayName`/`name`、可改、≤200 字；v2.20 ④ 按原型 S05 裁决，原 v2.19「标题只读」作废)
+│   │   ├── AutoParsedPanel     (只读：name/version/engines/repository/readme/icon；**不含 title/displayName**，该字段已移到上部可编辑输入)
+│   │   ├── SubmissionChecklist (提交前校验项 + 异步阶段说明；**从右栏移到这里**，非 sticky，位于自动解析块之后、下一步按钮之前，条目不变)
+│   │   └── SubmitActions       (**第一步只有「下一步：确认」一颗按钮** + 一句"提交前将再次核对版本与展示信息"；**此按钮只打开确认弹窗，不发起提交请求**，PRD §6.3 v2.19 ⑨)
 │   └── PluginPublishSettings   (右栏 `<aside>`，`lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-3`，标题「发布设置」)
 │       ├── NamespaceSelect     (必填；带 `?namespace=` 预填；**更新版本时 `disabled`**)
-│       └── VisibilitySelect    (必填、三档「公开 / 仅命名空间 / 私有」；下方一行说明文案用 `plugin.visibility.formHint.*`（**不是**详情页的 `notice.*`，两套措辞见 §10.5），`aria-describedby` 关联；选到非 `PUBLIC` 时该行立刻换醒目样式并明说"不会进入索引源")
+│       └── VisibilitySelect    (必填、三档「公开 / 仅命名空间 / 私有」；下方一行说明文案用 `plugin.visibility.formHint.*`（**不是**详情页的 `notice.*`，两套措辞见 §10.5），`aria-describedby` 关联；选到非 `PUBLIC` 时该行立刻换醒目样式并明说"不会进入索引源"；**其值即时联动到确认弹窗的「可见性」行**)
+├── ConfirmSubmitDialog         (**第二步「确认提交信息」弹窗**，PRD §6.3 v2.19 ⑨：与技能发布页 `publish.tsx` 同款五行——显示名称 / `@namespace/name@version` / 可见性 / 简介 / 末行审核说明文案（复用 `publish.reviewNotice.description`："提交后的处理取决于可见性和安全扫描策略。请以本次提交回执及版本状态为准。"）；可见性行与表单联动、即时同步；底部「返回编辑」outline（放弃本次确认回到表单）+「确认发布」primary，右上关闭入口；**只有点「确认发布」才 `POST /submissions`**——未确认前不发请求、不产生受理记录、不改变任何状态；规格 `width: min(100vw-2rem, 30rem)`、圆角 16px、标题正文居中、遮罩带 blur，照真实发布页 `publish.tsx`/`confirm-dialog.tsx`)
 └── SubmissionProgressView      (提交后轮询视图：阶段时间线 + 红线证据 + 重试/改包重提)
 
 `PluginPublishSettings`（`features/plugin/publish-settings.tsx`）的三条硬约束：
@@ -72,7 +69,7 @@ pages/dashboard/my-plugins.tsx
 │   └── SubmissionEmptyHint     (无在途：「当前没有进行中的提交」)
 ├── MyPluginsFilterBar          (关键词 q + 状态 + 空间 + 分类 + 裁决 + 「仅看在途」开关)
 └── PluginTable (共用组件)
-    ├── 列：图标+标题 / 包名 / 空间 / 状态徽标 / 最新版本 / 裁决徽标 / 更新时间
+    ├── 列：图标+标题 / 包名 / 空间 / 状态徽标 / 最新版本 / 裁决徽标（提交者 / 治理侧可见）/ 复制提示词次数（与详情页、市场卡片同源同字段同文案，取 promptCopyCount，PRD §10 v2.20 S06）/ 更新时间
     └── 操作列(查看/下架/重新上架/撤版/软删/看原因/重新提交/重新扫描)
 
 pages/dashboard/namespace-plugins.tsx
@@ -92,12 +89,14 @@ features/plugin/
 ├── report-dialog.tsx           (举报弹窗；理由码文案复用既有 features/report/report-text.ts)
 ├── source-forms/               (四来源表单)
 └── scan/
-    ├── verdict-meta.ts         (裁决 → 徽标/文案映射)
-    ├── capability-labels.ts    (10 能力)
-    ├── red-line-labels.ts      (5 红线 code + 占位渲染)
-    ├── security-disclosure.tsx
-    └── use-security-scan.ts
+    ├── verdict-meta.ts         (裁决 → 徽标/文案映射；**v2.20 ② 起仅供提交者 / 治理侧使用**（我的插件 / 空间插件 tab / 审核页）——市场卡片与公开详情页不再挂载任何裁决徽标，用户侧本期不展示披露)
+    ├── capability-labels.ts    (10 能力；**仅治理侧审核页使用**，详情页不再挂载)
+    ├── red-line-labels.ts      (5 红线 code + 占位渲染；**仅治理侧审核页使用**)
+    ├── security-disclosure.tsx (**仅治理侧**：审核页完整报告；详情页自 v2.19 起不再引用此组件，PRD ②)
+    └── use-security-scan.ts    (治理侧报告查询 hook)
 ```
+
+**v2.19 两处"产品意图，不写成已实现"的落点**（`PRD §3.3`/`§6.1`/`§13 Q6`）：① 插件提交页页头返回按钮（`PluginSubmitBackButton`）按上表实现；② **发布技能页** `/dashboard/publish`「收回控制台布局 + 页头返回 + 两步提交」只是产品意图，本设计**不改** `publish.tsx` 的任何代码与 header 的 "intentionally omitted" 决定——真实发布页是否照插件页新增返回按钮、兜底目标取什么，均留作 §14.2 开放问题，待用户拍板后再另起变更。本设计对 `/dashboard/publish` 的唯一硬约束仍是 §10.1 的 6 个查询参数回归红线。
 
 「我的插件」的两个设计点（handover 缺口 #4）：
 

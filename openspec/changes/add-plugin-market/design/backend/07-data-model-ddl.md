@@ -86,8 +86,8 @@ CREATE TABLE plugin (
 
 COMMENT ON TABLE plugin IS 'DSH 插件目录实体（npm 包形态，声明 dsh.bundle）；与 skill 表无任何共享语义';
 COMMENT ON COLUMN plugin.package_name IS 'npm 包名；唯一性由部分唯一索引 uq_plugin_package_name_active 保证（name_released_at IS NULL 时唯一），释放后旧行保留为墓碑';
-COMMENT ON COLUMN plugin.latest_scan_verdict IS '冗余列：最新版本的扫描裁决，随 latest_version_id 一起维护，供卡片徽标与列表筛选';
-COMMENT ON COLUMN plugin.prompt_copy_count IS '「复制提示词次数」冗余计数；刻意不叫安装量（站内无法确认 DSH 内是否安装成功）';
+COMMENT ON COLUMN plugin.latest_scan_verdict IS '冗余列：最新版本的扫描裁决，随 latest_version_id 一起维护；供治理侧列表筛选与索引收录状态判定（PRD §3.4「未收录：最新版本裁决为有红线」）。用户侧本期不展示任何裁决徽标（PRD v2.20 ②），此列不进任何公开投影';
+COMMENT ON COLUMN plugin.prompt_copy_count IS '「复制提示词次数」冗余计数；刻意不叫安装量（站内无法确认 DSH 内是否安装成功）。详情页、市场卡片与「我的插件」列表三处同源同字段同文案（PRD §10 v2.20 S06）：GET /api/v1/plugins 的 items[] 与 GET /api/v1/dashboard/plugins 的 items[] 投影都必须带该值，v1 唯一对外计数。浏览数（view）只落 plugin_stat_*、不进任何界面、不进列表投影';
 COMMENT ON COLUMN plugin.block_reason IS '黑名单理由；status=BLOCKED 时必填。黑名单是"全站禁止上架"，同时拦同 package_name 的后续提交（旧行仍占位，除非已被释放）';
 COMMENT ON COLUMN plugin.remove_reason IS '软删理由；status=REMOVED 时必填；仅 SUPER_ADMIN 与空间 ADMIN 可触发';
 COMMENT ON COLUMN plugin.name_released_at IS '包名释放时间；非空表示这一行的 package_name 与 (namespace_id, slug) 都不再占位。释放不改 status，软删后仍可被再次释放调用（幂等，不改首次值）';
@@ -315,7 +315,7 @@ CREATE TABLE plugin_scan_waiver (
 );
 
 COMMENT ON TABLE plugin_scan_waiver IS '红线放行白名单（按指纹）。放行/撤销都写审计；内容变化导致指纹变化时旧放行自动不生效';
-COMMENT ON COLUMN plugin_scan_waiver.red_line_codes IS '放行时命中的红线 code 快照，供详情页与审计回溯（红线条数不等于主机数）';
+COMMENT ON COLUMN plugin_scan_waiver.red_line_codes IS '放行时命中的红线 code 快照，供治理侧审核与审计回溯（红线条数不等于主机数）；用户侧本期不展示（PRD v2.20 ②）';
 COMMENT ON COLUMN plugin_scan_waiver.first_submission_id IS '首次触发放行的提交，便于从提交视角回溯';
 
 CREATE INDEX idx_plugin_scan_waiver_submission ON plugin_scan_waiver (first_submission_id);

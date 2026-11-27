@@ -14,10 +14,11 @@ paths:
   /api/v1/plugins:
     get:
       security: []
+      description: '"仅看收藏"为前端本地过滤，不新增后端参数（PRD §4.2 v2.20 ④）；sort 取 copyCount 时按 plugin.prompt_copy_count 倒序（三处同源计数，PRD §10）'
       parameters:
         - { name: q, in: query, schema: { type: string, maxLength: 200 } }
         - { name: category, in: query, schema: { $ref: '#/components/schemas/PluginCategory' } }
-        - { name: sort, in: query, schema: { type: string, enum: [newest, name], default: newest } }
+        - { name: sort, in: query, schema: { type: string, enum: [newest, name, copyCount], default: newest } }
         - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
         - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 48, default: 24 } }
       responses:
@@ -43,6 +44,11 @@ paths:
   /api/v1/plugins/{namespace}/{slug}/versions/{version}/security-scan:
     get:
       security: []
+      description: >-
+        **v2.20 ② 起本端点不再返回任何用户侧披露字段**（产品目标 4 删除、用户侧本期不展示能力/红线/裁决/摘要/免责）：
+        详情页、市场卡片、安装文档均不渲染扫描结论，此端点不下发裁决、能力/红线 code、`文件:行号` 证据片段、扫描器版本/时间与任何摘要文案。
+        扫描结论只作上架闸门 + 治理侧审核依据；完整报告与证据只在治理侧（需登录 `GET /api/v1/plugins/scan-reports/{id}` + 包内文件浏览，§7.2/§7.6）。
+        判定规则与四裁决本身不变，只改"证据展示在哪一侧"、用户侧本期不展示。
       parameters:
         - { $ref: '#/components/parameters/Namespace' }
         - { $ref: '#/components/parameters/Slug' }
@@ -54,7 +60,7 @@ paths:
   /api/v1/plugins/market:
     get:
       security: []
-      description: 市场页模块一所需的运行时信息；索引源地址由后端生成，前端不拼接
+      description: 市场页「索引源」段所需的运行时信息（PRD §4 v2.19 ⑦：上下平铺两段、无模块概念）；索引源地址由后端生成，前端不拼接
       responses:
         '200':
           content:
